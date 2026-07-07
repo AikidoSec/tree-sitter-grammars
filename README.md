@@ -4,7 +4,7 @@
 
 ### 1. Add source code
 
-we use subtree to keep history
+We use subtree to keep history. Example (adding Kotlin):
 
 ```
 git subtree add --prefix=tree-sitter-kotlin \
@@ -12,42 +12,57 @@ git subtree add --prefix=tree-sitter-kotlin \
   main --squash
 ```
 
-### 2. fix grammar scripts and regenerate
+### 2. Fix grammar scripts and regenerate
 
-Fix versions and add scripts in package.json
+1. Set exact versions of tools (see below). They should be same for all grammars
+2. Add scripts in package.json to regenerate grammar files
 
 ```
+{
   "scripts": {
     "generate": "tree-sitter generate --abi 14",
-    "clean:node": "rm binding.gyp & rm -rf bindings/node/",
+    "clean:node": "rm binding.gyp && rm -rf bindings/node/",
     "init": "tree-sitter init --update",
-    "regenarate": "npm run clean:node && npm run init && npm run generate"
+    "regenerate": "npm run clean:node && npm run init && npm run generate"
   },
   "dependencies": {
     "node-addon-api": "^8.2.2",
     "node-gyp-build": "^4.8.4"
   },
-  "peerDependencies": {
-    "tree-sitter": "^0.21.1"
-    }
-  },
   "devDependencies": {
     "tree-sitter": "0.21.1",
     "tree-sitter-cli": "0.25.10",
-    "prebuildify": "^6.0.0",
-  },
+    "prebuildify": "^6.0.0"
+  }
+}
 ```
 
-### 3. Add to CI (two times)
-
-
-
-## grammars
-
-*Kotlin*
+3. Regenerate
 
 ```
-git subtree add --prefix=tree-sitter-kotlin \
+  cd tree-sitter-kotlin && npm run regenerate
+```
+
+### 3. Add to CI
+
+in `.github/workflows/test.yml`
+
+```
+    strategy:
+      matrix:
+        folder:
+          - tree-sitter-kotlin
+          - tree-sitter-dart   # <- new grammar added here
+```
+
+## Grammars
+
+Reference list of vendored grammars: where each one's source comes from, and the command used to pull updates.
+
+### Kotlin
+
+```
+git subtree pull --prefix=tree-sitter-kotlin \
   git@github.com:fwcd/tree-sitter-kotlin.git \
   main --squash
 ```
