@@ -1,1 +1,5 @@
 src/** linguist-vendored
+
+# Zig bindings
+build.zig linguist-generated
+build.zig.zon linguist-generated

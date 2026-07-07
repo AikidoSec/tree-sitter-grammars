@@ -37,7 +37,19 @@ git subtree add --prefix=tree-sitter-kotlin \
 }
 ```
 
-3. Regenerate
+3. Disable every bindings except node tree-sitter.json
+```
+  "bindings": {
+    "c": false,
+    "go": false,
+    "node": true,
+    "python": false,
+    "rust": false,
+    "swift": false
+  }
+```
+
+4. Regenerate
 
 ```
   cd tree-sitter-kotlin && npm run regenerate
