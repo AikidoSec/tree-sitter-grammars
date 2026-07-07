@@ -7,7 +7,10 @@
   "scripts": {
     "test": "tree-sitter test",
     "install": "node-gyp-build",
-    "generate": "tree-sitter generate",
+    "generate": "tree-sitter generate --abi 14",
+    "clean:node": "rm binding.gyp && rm -rf bindings/node/",
+    "init": "tree-sitter init --update",
+    "regenerate": "npm run clean:node && npm run init && npm run generate",
     "parse": "tree-sitter parse",
     "build-wasm": "tree-sitter build --wasm",
     "playground": "tree-sitter playground",
@@ -47,7 +50,7 @@
   "homepage": "https://github.com/fwcd/tree-sitter-kotlin#readme",
   "dependencies": {
     "node-addon-api": "^8.2.2",
-    "node-gyp-build": "^4.8.2"
+    "node-gyp-build": "^4.8.4"
   },
   "peerDependencies": {
     "tree-sitter": "^0.21.1"
@@ -58,7 +61,8 @@
     }
   },
   "devDependencies": {
-    "tree-sitter-cli": "^0.24.4",
+    "tree-sitter": "0.21.1",
+    "tree-sitter-cli": "0.25.10",
     "prebuildify": "^6.0.0",
     "vitest": "^4.1.0"
   },
