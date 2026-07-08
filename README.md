@@ -21,9 +21,10 @@ git subtree add --prefix=tree-sitter-kotlin \
 {
   "scripts": {
     "generate": "tree-sitter generate --abi 14",
+    "generate:nodeTypes": "npx tsx ../genNodeTypes.ts src/ > src/Nodes.ts && npx prettier --write src/Nodes.ts",
     "clean:node": "rm binding.gyp && rm -rf bindings/node/",
     "init": "tree-sitter init --update",
-    "regenerate": "npm run clean:node && npm run init && npm run generate"
+    "regenerate": "npm run clean:node && npm run init && npm run generate && npm run generate:nodeTypes"
   },
   "dependencies": {
     "node-addon-api": "^8.2.2",
@@ -32,7 +33,9 @@ git subtree add --prefix=tree-sitter-kotlin \
   "devDependencies": {
     "tree-sitter": "0.21.1",
     "tree-sitter-cli": "0.25.10",
-    "prebuildify": "^6.0.0"
+    "prebuildify": "^6.0.0",
+    "prettier": "3.9.4",
+    "tsx": "4.23.0"
   }
 }
 ```
