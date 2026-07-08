@@ -8,7 +8,7 @@
     "test": "tree-sitter test",
     "install": "node-gyp-build",
     "generate": "tree-sitter generate --abi 14",
-    "generate:nodeTypes": "npx tsx ../genNodeTypes.ts src/ > src/Nodes.ts && npx prettier --write src/Nodes.ts",
+    "generate:nodeTypes": "npx tsx ../genNodeTypes.ts src/ > nodes.ts && npx prettier --write nodes.ts",
     "clean:node": "rm binding.gyp && rm -rf bindings/node/",
     "init": "tree-sitter init --update",
     "regenerate": "npm run clean:node && npm run init && npm run generate && npm run generate:nodeTypes",
@@ -40,7 +40,8 @@
     "prebuilds/**",
     "bindings/node/*",
     "queries/*",
-    "src/**"
+    "src/**",
+    "nodes.ts"
   ],
   "author": "fwcd",
   "license": "MIT",

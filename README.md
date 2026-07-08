@@ -21,7 +21,7 @@ git subtree add --prefix=tree-sitter-kotlin \
 {
   "scripts": {
     "generate": "tree-sitter generate --abi 14",
-    "generate:nodeTypes": "npx tsx ../genNodeTypes.ts src/ > src/Nodes.ts && npx prettier --write src/Nodes.ts",
+    "generate:nodeTypes": "npx tsx ../genNodeTypes.ts src/ > nodes.ts && npx prettier --write nodes.ts",
     "clean:node": "rm binding.gyp && rm -rf bindings/node/",
     "init": "tree-sitter init --update",
     "regenerate": "npm run clean:node && npm run init && npm run generate && npm run generate:nodeTypes"
@@ -56,6 +56,23 @@ git subtree add --prefix=tree-sitter-kotlin \
 
 ```
   cd tree-sitter-kotlin && npm run regenerate
+```
+
+5. `generate:nodeTypes` writes `nodes.ts` directly at the package root (not under
+   `src/`), so consumers get a short, stable import path. Add it to `files`:
+
+```
+  "files": [
+    ...
+    "src/**",
+    "nodes.ts"
+  ]
+```
+
+End users then import generated node types like this:
+
+```ts
+import type { KotlinNode } from "tree-sitter-kotlin/nodes";
 ```
 
 ### 3. Add to CI

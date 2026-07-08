@@ -1,10 +1,10 @@
 /**
  * Generate TypeScript types from `node-types.json` and `grammar.json`.
  *
- *   npx tsx ../genNodeTypes.ts src/ > src/Nodes.ts
+ *   npx tsx ../genNodeTypes.ts src/ > nodes.ts
  *
  * Format it afterwards:
- *   npx prettier --write src/Nodes.ts
+ *   npx prettier --write nodes.ts
  */
 
 import { readFileSync } from "fs";
