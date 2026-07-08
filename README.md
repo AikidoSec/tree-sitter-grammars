@@ -77,7 +77,19 @@ import type { KotlinNode } from "tree-sitter-kotlin/nodes";
 
 ### 3. Add to CI
 
+Add the new folder to the `matrix.folder` list in both workflows:
+
 in `.github/workflows/test.yml`
+
+```
+    strategy:
+      matrix:
+        folder:
+          - tree-sitter-kotlin
+          - tree-sitter-dart   # <- new grammar added here
+```
+
+in `.github/workflows/package.yml` (both the `build_node` and `package` jobs)
 
 ```
     strategy:
