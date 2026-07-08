@@ -1,0 +1,94 @@
+name: Prebuild and package tarball (npm)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build_node:
+    name: Build NodeJS binaries (${{ matrix.folder }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.folder }}
+    strategy:
+      matrix:
+        folder:
+          - tree-sitter-kotlin
+        os:
+          - ubuntu-latest
+          - windows-2022
+          - macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          cache: npm
+          cache-dependency-path: ${{ matrix.folder }}/package-lock.json
+          node-version: ${{vars.NODE_VERSION || '22'}}
+      - name: Install dependencies
+        # ignore preinstall script, so node-gyp-build is not trigerred
+        run: npm i --omit peer --omit optional --ignore-scripts
+      - name: Build x64 binary
+        run: npm x -- prebuildify --arch x64
+      - name: Set up cross-compilation
+        if: runner.os == 'Linux'
+        # this step should go after x86 build,
+        # we set env variables for build arm under linux
+        run: |-
+          sudo apt-get update
+          sudo apt-get install g++-aarch64-linux-gnu
+          printf '%s\n' >> "$GITHUB_ENV" \
+            'CC=aarch64-linux-gnu-gcc' 'CXX=aarch64-linux-gnu-g++'
+      - name: Build arm64 binary
+        # arm64 on windows needs separate testing (disable it for now)
+        if: runner.os != 'Windows'
+        run: npm x -- prebuildify --arch arm64
+      - name: Test Node bindings
+        run: node --test bindings/node/*_test.js
+      - name: Upload binaries
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ matrix.folder }}/prebuilds/**
+          name: prebuilds-${{ matrix.folder }}-${{ runner.os }}
+          retention-days: 2
+
+  package:
+    name: Package tarball npm (${{ matrix.folder }})
+    needs: [build_node]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ matrix.folder }}
+    strategy:
+      matrix:
+        folder:
+          - tree-sitter-kotlin
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          cache: npm
+          cache-dependency-path: ${{ matrix.folder }}/package-lock.json
+          node-version: ${{vars.NODE_VERSION || '22'}}
+      - name: Download binaries
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ matrix.folder }}/prebuilds
+          pattern: prebuilds-${{ matrix.folder }}-*
+          merge-multiple: true
+      - name: Check binaries
+        run: tree prebuilds
+      - name: Create package tarball
+        run: npm pack
+      - name: Upload package tarball
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ matrix.folder }}/*.tgz
+          name: package-tarball-${{ matrix.folder }}
+          retention-days: 2
