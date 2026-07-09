@@ -110,3 +110,11 @@ git subtree pull --prefix=tree-sitter-kotlin \
   git@github.com:fwcd/tree-sitter-kotlin.git \
   main --squash
 ```
+
+### Dart
+
+```
+git subtree pull --prefix=tree-sitter-dart \
+  git@github.com:nielsenko/tree-sitter-dart.git \
+  main --squash
+```
