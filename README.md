@@ -15,7 +15,10 @@ git subtree add --prefix=tree-sitter-kotlin \
 ### 2. Fix grammar scripts and regenerate
 
 1. Set exact versions of tools (see below). They should be same for all grammars
-2. Add scripts in package.json to regenerate grammar files
+2. Add only these 5 scripts to package.json's `scripts` object, to regenerate grammar files.
+   Merge them in — do not touch or reorder any other script, and leave every other field
+   (e.g. `test`, `install`, `prestart`, `start`, ...) exactly as vendored from upstream, so
+   future `git subtree pull` merges stay clean.
 
 ```
 {
