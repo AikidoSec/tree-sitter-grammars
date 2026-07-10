@@ -4,10 +4,18 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      folder:
+        description: "Single grammar folder to build (leave empty to build all)"
+        type: string
+        required: false
 
 jobs:
   build_node:
     name: Build NodeJS binaries (${{ matrix.folder }}, ${{ matrix.os }})
+    # Build a single folder when dispatched with `folder`, otherwise build all
+    # (release, or dispatch left empty).
+    if: inputs.folder == '' || matrix.folder == inputs.folder
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -58,6 +66,7 @@ jobs:
 
   package:
     name: Package tarball npm (${{ matrix.folder }})
+    if: inputs.folder == '' || matrix.folder == inputs.folder
     needs: [build_node]
     runs-on: ubuntu-latest
     defaults:
