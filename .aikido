@@ -1,4 +1,4 @@
 exclude:
   paths:
     # exclude all grammars
-    - tree-sitter-
+    - tree-sitter-kotlin
