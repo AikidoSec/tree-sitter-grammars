@@ -17,6 +17,7 @@ jobs:
         folder:
           - tree-sitter-kotlin
           - tree-sitter-dart
+          - tree-sitter-vb-dotnet
         os:
           - ubuntu-latest
           - windows-2022
@@ -69,6 +70,7 @@ jobs:
         folder:
           - tree-sitter-kotlin
           - tree-sitter-dart
+          - tree-sitter-vb-dotnet
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

@@ -121,3 +121,11 @@ git subtree pull --prefix=tree-sitter-dart \
   git@github.com:nielsenko/tree-sitter-dart.git \
   main --squash
 ```
+
+### VB.NET
+
+```
+git subtree pull --prefix=tree-sitter-vb-dotnet \
+  git@github.com:CodeAnt-AI/tree-sitter-vb-dotnet.git \
+  main --squash
+```
