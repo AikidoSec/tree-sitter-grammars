@@ -27,15 +27,19 @@
     "bindings/node/*",
     "queries/*",
     "src/**",
-    "*.wasm"
+    "*.wasm",
+    "nodes.ts"
   ],
   "dependencies": {
-    "node-addon-api": "^8.3.1",
+    "node-addon-api": "^8.2.2",
     "node-gyp-build": "^4.8.4"
   },
   "devDependencies": {
-    "prebuildify": "^6.0.1",
-    "tree-sitter-cli": "^0.25.8"
+    "tree-sitter": "0.21.1",
+    "tree-sitter-cli": "0.25.10",
+    "prebuildify": "^6.0.0",
+    "prettier": "3.9.4",
+    "tsx": "4.23.0"
   },
   "peerDependencies": {
     "tree-sitter": "^0.25.0"
@@ -49,6 +53,11 @@
     "install": "node-gyp-build",
     "prestart": "tree-sitter build --wasm",
     "start": "tree-sitter playground",
-    "test": "node --test bindings/node/*_test.js"
+    "test": "node --test bindings/node/*_test.js",
+    "generate": "tree-sitter generate --abi 14",
+    "generate:nodeTypes": "npx tsx ../genNodeTypes.ts src/ > nodes.ts && npx prettier --write nodes.ts",
+    "clean:node": "rm binding.gyp && rm -rf bindings/node/",
+    "init": "tree-sitter init --update",
+    "regenerate": "npm run clean:node && npm run init && npm run generate && npm run generate:nodeTypes"
   }
 }
