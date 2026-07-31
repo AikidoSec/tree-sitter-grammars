@@ -1,0 +1,298 @@
+================================================================================
+Simple module with a sub
+================================================================================
+
+Module Program
+    Sub Main()
+        Console.WriteLine("Hello")
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (member_access
+                  (expression
+                    (identifier))
+                  (identifier))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (string_literal)))))))))))))
+
+================================================================================
+Function with parameters and return type
+================================================================================
+
+Module Program
+    Function Add(x As Integer, y As Integer) As Integer
+        Return x + y
+    End Function
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (type
+          (primitive_type))
+        (statement
+          (return_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (identifier))))))))))
+
+================================================================================
+Public class with field and methods
+================================================================================
+
+Public Class Calculator
+    Private _memory As Integer = 0
+
+    Public Function Multiply(a As Double, b As Double) As Double
+        Return a * b
+    End Function
+
+    Public Sub Reset()
+        _memory = 0
+    End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type)))
+          (expression
+            (literal
+              (integer_literal)))))
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (type
+          (primitive_type))
+        (statement
+          (return_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (identifier)))))))
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (literal
+                    (integer_literal)))))))))))
+
+================================================================================
+Interface declaration
+================================================================================
+
+Public Interface IShape
+    Function GetArea() As Double
+End Interface
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (interface_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (type
+          (primitive_type))))))
+
+================================================================================
+Structure declaration
+================================================================================
+
+Public Structure Point
+    Public X As Integer
+    Public Y As Integer
+End Structure
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (structure_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type)))))
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type))))))))
+
+================================================================================
+Auto-implemented property
+================================================================================
+
+Public Class Person
+    Public Property Name As String
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (type
+            (primitive_type)))))))
+
+================================================================================
+Property with Get and Set
+================================================================================
+
+Public Class Counter
+    Private _count As Integer
+
+    Public Property Count As Integer
+        Get
+            Return _count
+        End Get
+        Set(value As Integer)
+            _count = value
+        End Set
+    End Property
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type)))))
+      (blank_line)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (type
+            (primitive_type)))
+        (get_accessor
+          (statement
+            (return_statement
+              (expression
+                (identifier)))))
+        (set_accessor
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (type
+                  (primitive_type)))))
+          (statement
+            (call_statement
+              (expression
+                (binary_expression
+                  (expression
+                    (identifier))
+                  (expression
+                    (identifier)))))))))))

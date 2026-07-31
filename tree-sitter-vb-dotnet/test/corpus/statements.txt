@@ -1,0 +1,296 @@
+================================================================================
+If Else statement
+================================================================================
+
+Module Program
+    Sub Main()
+        If x > 0 Then
+            Console.WriteLine("positive")
+        Else
+            Console.WriteLine("non-positive")
+        End If
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (if_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (literal
+                    (integer_literal)))))
+            (statement
+              (call_statement
+                (expression
+                  (invocation
+                    (member_access
+                      (expression
+                        (identifier))
+                      (identifier))
+                    (argument_list
+                      (argument
+                        (expression
+                          (literal
+                            (string_literal)))))))))
+            (else_clause
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (literal
+                              (string_literal))))))))))))))))
+
+================================================================================
+Select Case statement
+================================================================================
+
+Module Program
+    Sub Main()
+        Select Case x
+            Case 1
+                Console.WriteLine("one")
+            Case 2
+                Console.WriteLine("two")
+            Case Else
+                Console.WriteLine("other")
+        End Select
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (select_case_statement
+            (expression
+              (identifier))
+            (case_block
+              (case_clause
+                (expression
+                  (literal
+                    (integer_literal))))
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (literal
+                              (string_literal))))))))))
+            (case_block
+              (case_clause
+                (expression
+                  (literal
+                    (integer_literal))))
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (literal
+                              (string_literal))))))))))
+            (case_else_block
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (literal
+                              (string_literal))))))))))))))))
+
+================================================================================
+For loop
+================================================================================
+
+Module Program
+    Sub Main()
+        For i As Integer = 0 To 10
+            Console.WriteLine(i)
+        Next
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (for_statement
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))
+            (expression
+              (literal
+                (integer_literal)))
+            (expression
+              (literal
+                (integer_literal)))
+            (statement
+              (call_statement
+                (expression
+                  (invocation
+                    (member_access
+                      (expression
+                        (identifier))
+                      (identifier))
+                    (argument_list
+                      (argument
+                        (expression
+                          (identifier))))))))))))))
+
+================================================================================
+While loop
+================================================================================
+
+Module Program
+    Sub Main()
+        While x < 10
+            x = x + 1
+        End While
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (while_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (literal
+                    (integer_literal)))))
+            (statement
+              (call_statement
+                (expression
+                  (binary_expression
+                    (expression
+                      (identifier))
+                    (expression
+                      (binary_expression
+                        (expression
+                          (identifier))
+                        (expression
+                          (literal
+                            (integer_literal)))))))))))))))
+
+================================================================================
+Try Catch Finally
+================================================================================
+
+Module Program
+    Sub Main()
+        Try
+            ProcessData()
+        Catch ex As Exception
+            Console.WriteLine(ex.Message)
+        Finally
+            Cleanup()
+        End Try
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (try_statement
+            (statement
+              (call_statement
+                (expression
+                  (invocation
+                    (identifier)
+                    (argument_list)))))
+            (catch_block
+              (identifier)
+              (type
+                (namespace_name
+                  (identifier)))
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (member_access
+                              (expression
+                                (identifier))
+                              (identifier))))))))))
+            (finally_block
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (identifier)
+                      (argument_list))))))))))))
