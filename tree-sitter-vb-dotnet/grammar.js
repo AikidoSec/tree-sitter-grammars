@@ -20,8 +20,6 @@ module.exports = grammar({
 
   
   conflicts: $ => [
-    [$.type, $.invocation],
-    [$.type] ,
     [$.new_expression] ,
     [$.type_argument_list] ,
     [$.property_declaration] ,
@@ -821,13 +819,13 @@ module.exports = grammar({
     // Binary operators with precedence (higher number = higher precedence binding)
     binary_expression: $ => {
       const table = [
-        [7, choice('^')],                              // exponentiation (right-associative in VB)
+        [7, '^'],                                       // exponentiation (right-associative in VB)
         [6, choice('*', '/', '\\', kw('Mod'))],        // multiplication, division, integer division, modulo
         [5, choice('+', '-')],                         // addition and subtraction
         [4, kw('&')],                                  // string concatenation
         [3, choice('<<', '>>')],                       // bit shifts
         [2, choice('=', '<>', '<', '>', '<=', '>=', kw('Is'), kw('IsNot'), kw('Like'))],  
-        [1, choice(kw('TypeOf'))],                     // TypeOf ... Is ... (treated separately if needed)
+        [1, kw('TypeOf')],                              // TypeOf ... Is ... (treated separately if needed)
         [0, choice(kw('And'), kw('Or'), kw('Xor'))],   // boolean/bitwise AND/OR/XOR
         [-1, choice(kw('AndAlso'), kw('OrElse'))]      // short-circuit logical operators (lowest precedence)
       ];
