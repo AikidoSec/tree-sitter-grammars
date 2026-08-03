@@ -525,3 +525,25 @@ End Class
                 (primitive_type))))))
       (preprocessor_directive)
       (blank_line))))
+
+================================================================================
+Leading comment before Imports (common license-header shape)
+================================================================================
+
+' a comment
+Imports System
+Namespace Foo
+End Namespace
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (comment)
+  (blank_line)
+  (imports_statement
+    (namespace_name
+      (identifier)))
+  (namespace_block
+    (namespace_name
+      (identifier))))

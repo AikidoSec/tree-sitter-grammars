@@ -33,18 +33,20 @@ module.exports = grammar({
     [$.empty_statement, $.if_statement],
     [$.namespace_name, $.attribute],
     [$.namespace_name],
+    [$.source_file],
   ],
 
   rules: {
     
     source_file: $ => seq(
+    repeat(alias($._terminator, $.blank_line)), // a leading comment leaves its terminator stranded here
     optional($.option_statements),
     repeat($.imports_statement),
     repeat(choice(
       $.attribute_block,
       $.namespace_block,
       $.type_declaration,
-      alias($._terminator, $.blank_line) // 
+      alias($._terminator, $.blank_line) //
     ))
   ),
 

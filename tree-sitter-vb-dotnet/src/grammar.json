@@ -6,6 +6,18 @@
       "type": "SEQ",
       "members": [
         {
+          "type": "REPEAT",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_terminator"
+            },
+            "named": true,
+            "value": "blank_line"
+          }
+        },
+        {
           "type": "CHOICE",
           "members": [
             {
@@ -7270,6 +7282,9 @@
     ],
     [
       "namespace_name"
+    ],
+    [
+      "source_file"
     ]
   ],
   "precedences": [],
