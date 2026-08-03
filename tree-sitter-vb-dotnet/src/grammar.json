@@ -1093,6 +1093,10 @@
       "type": "SEQ",
       "members": [
         {
+          "type": "STRING",
+          "value": "("
+        },
+        {
           "type": "TOKEN",
           "content": {
             "type": "PATTERN",
@@ -1143,6 +1147,10 @@
               }
             }
           ]
+        },
+        {
+          "type": "STRING",
+          "value": ")"
         }
       ]
     },
@@ -2135,6 +2143,10 @@
       "type": "SEQ",
       "members": [
         {
+          "type": "STRING",
+          "value": "("
+        },
+        {
           "type": "TOKEN",
           "content": {
             "type": "PATTERN",
@@ -2185,6 +2197,10 @@
               }
             }
           ]
+        },
+        {
+          "type": "STRING",
+          "value": ")"
         }
       ]
     },
@@ -7126,9 +7142,6 @@
   "conflicts": [
     [
       "new_expression"
-    ],
-    [
-      "type_argument_list"
     ],
     [
       "property_declaration"

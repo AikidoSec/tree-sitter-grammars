@@ -10,38 +10,40 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes two of those gaps:
+3. Fixes three of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
      production at all, so it (and every sibling declaration after it) misparsed as `ERROR`.
+   - generic type parameters `(Of T)` on class/method declarations, and generic types `(Of T)` on
+     field/return types, were missing their surrounding parens in the grammar and misparsed as
+     `ERROR` either side of an otherwise-correct `type_parameters`/`generic_type` node.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (8 tests), `statements.txt` (7 tests, incl. the newly-fixed `Do`-prefix one) —
-  baseline coverage: modules, classes, interfaces, structures, properties (auto + get/set),
-  if/select/for/while/try, nested classes. All pass; this is what proves the corpus-test plumbing
-  works end to end (CI already runs `tree-sitter test` per grammar folder via
-  `.github/workflows/test.yml`).
+- `declarations.txt` (10 tests), `statements.txt` (7 tests, incl. the `Do`-prefix fix) — baseline
+  coverage: modules, classes, interfaces, structures, properties (auto + get/set),
+  if/select/for/while/try, nested classes, generic class/method declarations and generic
+  field/return types. All pass; this is what proves the corpus-test plumbing works end to end (CI
+  already runs `tree-sitter test` per grammar folder via `.github/workflows/test.yml`).
 - `known_gaps.txt` (3 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
   out of this file into `declarations.txt`/`statements.txt`.
-  - **Generic type parameters `(Of T)` are not supported** — `(Of T)` type-parameter lists don't
-    parse anywhere in this grammar: class/method declarations, field/return types, and call sites
-    all break in different ways (see `vb-parser-breaks.md` #17-21). Minimal repro:
-    `Public Class Container(Of T)`. This used to be entangled with the nested-class gap below,
-    since every real-world repro of nested classes we found also happened to use generics — split
-    into its own minimal case once the nested-class fix landed and showed the two were unrelated.
+  - **Generic method call type arguments are not supported** — `GetItem(Of String)("key")` has no
+    grammar support for an explicit `(Of T)` type-argument list before a call's real argument list,
+    so it misparses as a call with two bogus arguments (`Of`, `String`) followed by the real
+    `("key")` misread as an indexer on the result. This is a separate grammar surface from generic
+    *declarations* (see the fix below) — declarations are now fixed, call sites aren't yet.
   - **Constructors with generic-collection parameters lose sibling declarations** — a parameter
     list combining an attribute (`<[In], Out>`), `ByRef`, a generic type
     (`CompoundUseSiteInfo(Of AssemblySymbol)`), and `Optional ... = Nothing` defaults across
     multiple lines breaks parsing of the entire surrounding class *and* its sibling `Structure`.
-    Repro is a verbatim excerpt from `dotnet/roslyn`'s `BasesBeingResolvedBinder.vb` — a second,
-    compounding data point on top of the minimal generics case above, kept since it's a distinct
-    combination of factors seen in real code.
+    Repro is a verbatim excerpt from `dotnet/roslyn`'s `BasesBeingResolvedBinder.vb`. Confirmed
+    this is *not* fixed by the generics-declaration fix below (still 18 `ERROR` nodes) — it's a
+    distinct, compounding combination of factors seen in real code.
   - **`Inherits`/`Implements` on separate lines produce ERROR nodes** — real VB.NET style is
     `Inherits`/`Implements` as their own statement, one per line, right after the class header.
     The grammar only accepts them inline on the header line (before the statement terminator), so
@@ -89,11 +91,37 @@ Verified:
   what's left there is entirely the separate generics gap.
 - No regressions: full corpus suite unaffected elsewhere.
 
+### Grammar fix: generic type parameters and type arguments (`grammar.js`)
+
+`type_parameters` (the `(Of T As Constraint, ...)` clause on class/method declarations) and
+`type_argument_list` (the `(Of T, ...)` clause on a `generic_type` reference, e.g.
+`List(Of Integer)`) were both missing their surrounding `(`/`)` in their own `seq(...)` — they only
+matched `Of T`, not `(Of T)`. The caller (`class_block`, `variable_declarator`'s `as_clause`, etc.)
+didn't consume the parens either, so both landed as stray `ERROR` tokens immediately either side of
+an otherwise-correctly-parsed `type_parameters`/`generic_type` node.
+
+Fix: add `'(' ... ')'` around the existing body of both rules. Also removed a stale
+`[$.type_argument_list]` conflicts declaration that predated this fix and was no longer needed
+(confirmed by removing it and regenerating clean — no warning, no unresolved conflict).
+
+Verified:
+- `Public Class Container(Of T)` (generic class) — zero `ERROR`.
+- `Public Function GetItem(Of T)(key As String) As T` (generic method declaration, with a *plain*
+  `parameter_list` following the type parameters) — zero `ERROR`.
+- `Public Items As List(Of Integer)` (generic field type via `generic_type`) — zero `ERROR`.
+- `GetItem(Of String)("key")` (generic method *call*) — confirmed still broken; this is a different
+  grammar surface (the invocation/call rule has no optional type-argument-list of its own) and is
+  now tracked separately in `known_gaps.txt`.
+- `vb-parser-breaks.md` #18/#19/#21 describe more severe symptoms (whole class lost, wrong arity,
+  types silently dropped) than what this fix actually shows — those rows may be stale/from an
+  earlier grammar snapshot; only #17 and #20 matched what was reproduced here.
+- No regressions: full corpus suite unaffected elsewhere.
+
 ## Verification
 
 ```
 tree-sitter generate --abi 14   # clean, no warnings
-tree-sitter test                # 14 passing, 3 known gaps (intentionally failing)
+tree-sitter test                # 16 passing, 3 known gaps (intentionally failing)
 ```
 
 ## Also fixed in this branch (housekeeping, no behavior change)
@@ -108,8 +136,13 @@ tree-sitter test                # 14 passing, 3 known gaps (intentionally failin
 ## Next steps
 
 - Port `vb-parser-breaks.md` gap #2 (`Select`-prefix identifiers) as a corpus test in
-  `statements.txt` — likely already fixed by the same change, needs verification.
+  `statements.txt` — likely already fixed by the `Do`-prefix change, needs verification.
 - Fix `Inherits`/`Implements` on separate lines: move the optional clauses in `class_block`/
   `structure_block`/`interface_block` to after the statement terminator instead of before it.
-- Design `(Of T)` generic-type support — the largest remaining piece, since it touches class/method
-  declarations, field/return types, and call sites throughout the grammar rather than one rule.
+- Add generic type arguments to call sites (`GetItem(Of String)(...)`) — add an optional
+  `type_argument_list` to the invocation/call grammar before the regular `argument_list`.
+- Re-verify `vb-parser-breaks.md` #18/#19/#21 against the current grammar now that #17/#20's actual
+  behavior didn't match the doc — the doc may need a broader refresh, not just new corpus tests.
+- Re-check the "constructors with generic-collection parameters" gap now that plain generics are
+  fixed — still broken (18 `ERROR` nodes), so the remaining factors (parameter attribute, `ByRef`,
+  multi-line `Optional` defaults) are the real blocker there, not generics itself.

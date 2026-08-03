@@ -21,7 +21,6 @@ module.exports = grammar({
   
   conflicts: $ => [
     [$.new_expression] ,
-    [$.type_argument_list] ,
     [$.property_declaration] ,
     [$.constructor_declaration],
     [$.method_declaration],
@@ -186,8 +185,9 @@ module.exports = grammar({
 
     // Generic type parameter definitions: e.g., (Of T As {Constraint})
     type_parameters: $ => seq(
-      kw('Of'),
-      commaSep1($.type_parameter)
+      '(', kw('Of'),
+      commaSep1($.type_parameter),
+      ')'
     ),
     type_parameter: $ => seq(
       field('name', $.identifier),
@@ -300,7 +300,7 @@ module.exports = grammar({
       kw('Char'), kw('String'),
       kw('Object'), kw('Date')
     )),
-    type_argument_list: $ => seq(kw('Of'), commaSep1($.type)),
+    type_argument_list: $ => seq('(', kw('Of'), commaSep1($.type), ')'),
 
     // Method (Sub/Function) declaration inside a class/module or as a procedure in a module
     method_declaration: $ => seq(

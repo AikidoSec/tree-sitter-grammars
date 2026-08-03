@@ -1,9 +1,12 @@
 ================================================================================
-[gap] generic type parameters (Of T) are not supported
+[gap] generic method call type arguments are not supported
 ================================================================================
 
-Public Class Container(Of T)
-End Class
+Module M
+	Sub Main()
+		GetItem(Of String)("key")
+	End Sub
+End Module
 
 --------------------------------------------------------------------------------
 
