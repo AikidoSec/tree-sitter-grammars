@@ -294,3 +294,30 @@ End Module
                     (invocation
                       (identifier)
                       (argument_list))))))))))))
+
+================================================================================
+Do-prefix identifier is not confused with the Do-loop keyword
+================================================================================
+
+Module Program
+	Sub Main()
+		DoWork()
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list)))))))))
