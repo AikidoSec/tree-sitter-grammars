@@ -217,6 +217,54 @@ tree-sitter test                # 20 passing, 1 known gap (intentionally failing
 - Both confirmed byte-identical `parser.c`/`node-types.json` output before/after, i.e. purely
   cosmetic.
 
+### Packaging bug: broken native binding, found while testing the packed tarball
+
+Testing `npm pack` output installed into `autotriage` surfaced a **pre-existing** packaging bug,
+unrelated to any grammar change in this branch: the native Node binding crashed on load.
+
+Root cause: `tree-sitter.json`'s grammar `name` was `"tree_sitter_vb_dotnet"` — already
+double-prefixed — while `grammar.js`'s own `name` is correctly `'vb_dotnet'`. Every artifact
+scaffolded *from* `tree-sitter.json` (via `tree-sitter init`) inherited the double prefix —
+`bindings/node/binding.cc` declared `extern "C" TSLanguage *tree_sitter_tree_sitter_vb_dotnet()`,
+`binding.gyp`'s `target_name`, the NAPI module name — but `parser.c` (generated from `grammar.js`,
+the correct single-prefixed name) only ever exported `tree_sitter_vb_dotnet()`. `binding.cc` called
+a symbol that was never actually generated, so the native module either failed to link or crashed at
+load, depending on the toolchain. Confirmed `tree-sitter-kotlin`/`tree-sitter-dart` in this monorepo
+don't have this bug — both consistently use their real name (`"kotlin"`, `"dart"`) everywhere; this
+was a one-off scaffolding mistake specific to `tree-sitter-vb-dotnet`, likely from whoever ran
+`tree-sitter init` initially entering `tree_sitter_vb_dotnet` as the project name without realizing
+the tool always auto-prepends `tree_sitter_` itself.
+
+Also found and fixed while testing the tarball: `peerDependencies.tree-sitter` was `^0.25.0`, while
+this package's own `devDependencies.tree-sitter` pins `0.21.1` — a real mismatch (not something
+intentionally different from upstream) that forced `--legacy-peer-deps` on install. Both sibling
+grammars pin `peerDependencies.tree-sitter` to `^0.21.1`, matching their own `devDependencies` — vb
+dotnet's `^0.25.0` didn't match that convention or its own pin. Fixed to `^0.21.1` to match.
+
+Fix: corrected `tree-sitter.json`'s `name`/`camelcase`/`title`/`scope`/`file-types`/
+`injection-regex`/`class-name` to consistently use `vb_dotnet` (also fixed the metadata
+`links.repository`, which pointed at a nonexistent placeholder URL from the same scaffolding
+mistake, to the real `CodeAnt-AI/tree-sitter-vb-dotnet` upstream), then regenerated the Node
+bindings via the documented flow (`npm run clean:node && npm run init && npm run generate &&
+npm run generate:nodeTypes`) — confirmed `package.json`'s scripts/dependencies were untouched by
+that regenerate (diffed before/after), only `binding.gyp`, `bindings/node/binding.cc`,
+`bindings/node/index.js`, and `nodes.ts` changed. Fixed the peer dependency version separately.
+
+`nodes.ts` also picked up two TypeScript type updates we'd missed regenerating after earlier
+commits in this branch (`typeArgumentsNode` on `InvocationNode` from the generic-call fix,
+nullable `falseBranchNode` on `TernaryExpressionNode` from the 2-arg `If` fix) — unrelated to the
+packaging bug, just stale from not re-running `generate:nodeTypes` after those grammar changes.
+
+Verified:
+- `npm install` (triggering the `install` script, `node-gyp-build`) builds cleanly from source, no
+  prebuilt binaries needed.
+- Loaded and parsed successfully via the Node binding directly (not just the CLI).
+- Fresh `npm pack` → installed into an isolated temp project with a clean `npm install` (no
+  `--legacy-peer-deps`) → loaded and parsed `Inherits`/`Implements` correctly. This confirms the fix
+  from a genuinely clean install, not just leftover local build state.
+- Full corpus suite (`tree-sitter test`) and the bundled `test/test.js` sanity script both still
+  pass, unaffected by any of this.
+
 ## Next steps
 
 - Port `vb-parser-breaks.md` gap #2 (`Select`-prefix identifiers) as a corpus test in
