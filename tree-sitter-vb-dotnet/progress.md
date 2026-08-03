@@ -10,7 +10,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes eight of those gaps:
+3. Fixes nine of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
@@ -34,17 +34,24 @@ none of its known parsing gaps were tracked as regression tests. This PR:
      `Reminder`, `Remote`, ... — got swallowed into a `REM`-style comment along with the rest of the
      physical line. Found while re-testing `RemoveHandler`-adjacent identifiers; turned out to have
      nothing to do with the `RemoveHandler` keyword at all.
+   - A leading comment as a file's first line, followed by `Imports` (with or without a blank line
+     between) — the near-universal license-header shape in real VB.NET codebases — misparsed as
+     `ERROR`. `source_file` had no way to consume a stray terminator before `option_statements`/
+     `imports_statement`; already documented as `vb-parser-breaks.md` #34 ("cosmetic only, N/A") but
+     that assessment undersold it badly, since a comment (an invisible lexer "extra") leaves its
+     terminator stranded there too, not just a literal blank first line.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (13 tests), `statements.txt` (11 tests, incl. the `Do`-prefix fix, the
+- `declarations.txt` (14 tests), `statements.txt` (11 tests, incl. the `Do`-prefix fix, the
   generic-call fix, the 2-arg `If` fix, the `Rem`-prefix fix, and a baseline `REM`-comment test) —
   baseline coverage: modules, classes, interfaces, structures, properties (auto + get/set),
   if/select/for/while/try, nested classes, generic class/method declarations, generic field/return
   types, generic method calls, 2-arg `If`, separate-line `Inherits`/`Implements`, member-level
-  preprocessor directives, comments. All pass; this is what proves the corpus-test plumbing works
+  preprocessor directives, comments, a leading comment before `Imports`. All pass; this is what
+  proves the corpus-test plumbing works
   end to end (CI already runs `tree-sitter test` per grammar folder via
   `.github/workflows/test.yml`).
 - `known_gaps.txt` (1 test) — known bug, pinned with `(source_file)` as a deliberately-wrong
@@ -274,6 +281,40 @@ Verified:
   `RemoveHandler`.
 - `REM this is a comment` (with content) and bare `REM` alone on a line (no content) — both still
   parse as a valid `comment` node, no regression on genuine `REM` comments.
+- No regressions: full corpus suite unaffected elsewhere.
+
+### Grammar fix: leading comment before `Imports` (`grammar.js`)
+
+Found via a fresh autotriage benchmark re-run after packaging the fixes above — a minimal 4-line
+repro: a comment as a file's very first line, followed directly by `Imports` (with or without a
+blank line between). This is the near-universal license-header shape in real VB.NET codebases —
+every Roslyn source file starts with exactly this pattern (a multi-line license comment, then a
+block of `Imports`) — so despite showing a smaller aggregate miss count than the earlier fixes (it's
+often a partial, not total, cascade), the *reach* across real-world files is likely larger than
+everything fixed so far combined.
+
+This is `vb-parser-breaks.md` #34 ("Leading blank line before `Imports`"), already documented but
+marked "cosmetic only, N/A" for a workaround — that assessment undersold it: `comment` is a lexer
+"extra" (matched anywhere, invisible to the grammar), but the *newline terminating* a comment-only
+line is a real, meaningful `_terminator` token that still needs a rule to consume it. `source_file`
+had `repeat(alias($._terminator, $.blank_line))` *after* `option_statements`/`imports_statement`,
+but nothing *before* them — so a leading comment (or a literal blank first line, no comment needed)
+left its terminator with no valid production, misparsing as `ERROR` right before the first
+`imports_statement`.
+
+Fix: add `repeat(alias($._terminator, $.blank_line))` at the very start of `source_file`, before
+`option_statements`. This creates a genuine ambiguity with the *existing* trailing repeat when
+`option_statements`/`imports_statement` are both absent (either repeat could consume the same
+terminator) — resolved with a `[$.source_file]` conflict declaration, clean regenerate.
+
+Verified:
+- The exact reported repro (`' a comment` / `Imports System` / `Namespace Foo` / `End Namespace`)
+  — zero `ERROR`.
+- A literal blank first line (no comment) before `Imports` — zero `ERROR`, confirming this is the
+  same root cause as #34, not a comment-specific variant.
+- A comment directly before `Imports` with no blank line between — zero `ERROR`.
+- A realistic 3-line Roslyn-style license header + blank line + two `Imports` + `Namespace` — zero
+  `ERROR`.
 - No regressions: full corpus suite unaffected elsewhere.
 
 ## Verification
