@@ -737,6 +737,7 @@ module.exports = grammar({
     
     invocation: $ => prec.left(1, seq(
       field('target', choice($.member_access, $.identifier)),
+      optional(field('type_arguments', $.type_argument_list)),
       field('arguments', $.argument_list)
     )),
 
