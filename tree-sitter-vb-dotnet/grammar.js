@@ -936,10 +936,13 @@ module.exports = grammar({
       /[A-Za-z_][A-Za-z_0-9]*[$%&@#!]?/   // allow type-declaration suffix in identifier (e.g., foo$, bar!)
     )),
 
-    // Comment: `'` or `REM` to end of line
+    // Comment: `'` or `REM` to end of line. `REM` must be followed by
+    // whitespace or nothing — otherwise "Removed"/"Reminder"/etc. would
+    // match "Rem" + greedy rest-of-line and lose to the identifier only
+    // when the identifier happens to be longer than the whole comment.
     comment: $ => token(choice(
       seq("'", /[^\r\n]*/),
-      seq(kw('REM'), /[^\r\n]*/)
+      seq(kw('REM'), optional(seq(/[ \t]/, /[^\r\n]*/)))
     )),
 
     // Line break (statement terminator)

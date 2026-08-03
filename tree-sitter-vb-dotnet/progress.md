@@ -10,7 +10,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes seven of those gaps:
+3. Fixes eight of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
@@ -30,18 +30,23 @@ none of its known parsing gaps were tracked as regression tests. This PR:
      behind `#If ... Then` / `#Else`) misparsed as `ERROR`. Found while investigating a residual
      cascade in `DefinitelyAssignedWalker.vb` during autotriage benchmarking, not from
      `vb-parser-breaks.md` (not previously documented there).
+   - Any identifier starting with the 3 letters `Rem` (case-insensitive) — `RemoveHandlerFoo`,
+     `Reminder`, `Remote`, ... — got swallowed into a `REM`-style comment along with the rest of the
+     physical line. Found while re-testing `RemoveHandler`-adjacent identifiers; turned out to have
+     nothing to do with the `RemoveHandler` keyword at all.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (13 tests), `statements.txt` (9 tests, incl. the `Do`-prefix fix, the
-  generic-call fix, and the 2-arg `If` fix) — baseline coverage: modules, classes, interfaces,
-  structures, properties (auto + get/set), if/select/for/while/try, nested classes, generic
-  class/method declarations, generic field/return types, generic method calls, 2-arg `If`,
-  separate-line `Inherits`/`Implements`, member-level preprocessor directives. All pass; this is
-  what proves the corpus-test plumbing works end to end (CI already runs `tree-sitter test` per
-  grammar folder via `.github/workflows/test.yml`).
+- `declarations.txt` (13 tests), `statements.txt` (11 tests, incl. the `Do`-prefix fix, the
+  generic-call fix, the 2-arg `If` fix, the `Rem`-prefix fix, and a baseline `REM`-comment test) —
+  baseline coverage: modules, classes, interfaces, structures, properties (auto + get/set),
+  if/select/for/while/try, nested classes, generic class/method declarations, generic field/return
+  types, generic method calls, 2-arg `If`, separate-line `Inherits`/`Implements`, member-level
+  preprocessor directives, comments. All pass; this is what proves the corpus-test plumbing works
+  end to end (CI already runs `tree-sitter test` per grammar folder via
+  `.github/workflows/test.yml`).
 - `known_gaps.txt` (1 test) — known bug, pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
@@ -239,11 +244,43 @@ Verified:
   statement-level case) — still zero `ERROR`, confirming no regression there.
 - No regressions: full corpus suite unaffected elsewhere.
 
+### Grammar fix: `Rem`-prefixed identifiers swallowed as `REM` comments (`grammar.js`)
+
+Found while re-testing `RemoveHandler`-adjacent identifiers after the packaging fixes: `RemoveFoo`,
+`Removed`, `Reminder`, `Remote`, `Remainder`, ... — any identifier starting with the 3 letters `Rem`
+(case-insensitive) — got swallowed into a comment along with the rest of the physical line. Turned
+out to have nothing to do with `RemoveHandler`/`AddHandler` at all, despite the superficial
+resemblance to the `Do`-prefix bug we fixed earlier in this branch.
+
+Root cause is the *opposite* mechanism from the `Do`-prefix bug. That one was precedence beating
+length (a *shorter* keyword artificially winning over a *longer* identifier via a forced `prec()`
+boost we'd added). Here, `comment`'s `REM` alternative was `seq(kw('REM'), /[^\r\n]*/)` — the
+trailing `/[^\r\n]*/` greedily consumes the *entire rest of the line*, unbounded. For
+`Dim Removed As Integer`, the token `Rem` + `oved As Integer` (18+ chars) is genuinely *longer* than
+the identifier `Removed` (7 chars) alone — longest-match correctly, mechanically prefers the
+comment; no precedence trick involved or exploitable. `AddHandler`-adjacent identifiers were never
+affected because they don't happen to start with `rem`.
+
+Fix: require a whitespace separator between `REM` and any trailing text —
+`seq(kw('REM'), optional(seq(/[ \t]/, /[^\r\n]*/)))`. For `Removed`, after matching `Rem` the next
+character is `o` (not whitespace), so the optional tail doesn't match at all and the comment
+alternative is bounded to just 3 characters — now genuinely shorter than the 7-character identifier,
+so longest-match naturally prefers `Removed` as an identifier. For real `REM this is a comment`, the
+space after `REM` lets the optional tail match as before, no change in behavior.
+
+Verified:
+- `RemoveHandlerFoo`, `Removed`, `Reminder`, `Remote`, `Remainder` (as variable names, method names)
+  — all zero `ERROR`, confirming the fix is about the `Rem` prefix generally, not specific to
+  `RemoveHandler`.
+- `REM this is a comment` (with content) and bare `REM` alone on a line (no content) — both still
+  parse as a valid `comment` node, no regression on genuine `REM` comments.
+- No regressions: full corpus suite unaffected elsewhere.
+
 ## Verification
 
 ```
 tree-sitter generate --abi 14   # clean, no warnings
-tree-sitter test                # 21 passing, 1 known gap (intentionally failing)
+tree-sitter test                # 24 passing, 1 known gap (intentionally failing)
 ```
 
 ## Also fixed in this branch (housekeeping, no behavior change)

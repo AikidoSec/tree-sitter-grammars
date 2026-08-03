@@ -385,3 +385,54 @@ End Module
                   (identifier))
                 (expression
                   (identifier))))))))))
+
+================================================================================
+Rem-prefixed identifier is not confused with a REM comment
+================================================================================
+
+Module Program
+	Sub Main()
+		Dim Removed As Integer
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))))))
+
+================================================================================
+REM comment with content
+================================================================================
+
+Module Program
+	Sub Main()
+		REM this is a comment
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (comment)
+        (statement
+          (empty_statement))))))
