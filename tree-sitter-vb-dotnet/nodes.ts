@@ -297,6 +297,7 @@ export interface InvocationNode extends AbstractVb_dotnetNode {
 
   argumentsNode: ArgumentListNode;
   targetNode: IdentifierNode | MemberAccessNode;
+  typeArgumentsNode: TypeArgumentListNode | null;
 }
 
 export interface LabelStatementNode extends AbstractVb_dotnetNode {
@@ -482,7 +483,7 @@ export interface TernaryExpressionNode extends AbstractVb_dotnetNode {
   type: "ternary_expression";
 
   conditionNode: ExpressionNode;
-  falseBranchNode: ExpressionNode;
+  falseBranchNode: ExpressionNode | null;
   trueBranchNode: ExpressionNode;
 }
 

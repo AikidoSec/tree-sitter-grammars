@@ -2,15 +2,15 @@
   "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
   "grammars": [
     {
-      "name": "tree_sitter_vb_dotnet",
-      "camelcase": "TreeSitterVbDotnet",
-      "title": "TreeSitterVbDotnet",
-      "scope": "source.tree_sitter_vb_dotnet",
+      "name": "vb_dotnet",
+      "camelcase": "VbDotnet",
+      "title": "VbDotnet",
+      "scope": "source.vb_dotnet",
       "file-types": [
-        "tree_sitter_vb_dotnet"
+        "vb"
       ],
-      "injection-regex": "^tree_sitter_vb_dotnet$",
-      "class-name": "TreeSitterTreeSitterVbDotnet"
+      "injection-regex": "^vb_dotnet$",
+      "class-name": "TreeSitterVbDotnet"
     }
   ],
   "metadata": {
@@ -24,7 +24,7 @@
       }
     ],
     "links": {
-      "repository": "https://github.com/tree-sitter/tree-sitter-tree_sitter_vb_dotnet"
+      "repository": "https://github.com/CodeAnt-AI/tree-sitter-vb-dotnet"
     }
   },
   "bindings": {
