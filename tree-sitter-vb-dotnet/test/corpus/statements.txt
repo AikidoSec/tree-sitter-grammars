@@ -355,3 +355,33 @@ End Module
                     (expression
                       (literal
                         (string_literal)))))))))))))
+
+================================================================================
+2-argument If null-coalescing operator
+================================================================================
+
+Module M
+	Sub Main()
+		Dim x = If(a, b)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (ternary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (identifier))))))))))

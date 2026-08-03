@@ -836,13 +836,15 @@ module.exports = grammar({
       ));
     },
 
-    // Ternary conditional (IIf-like or If operator: If(condition, trueExpr, falseExpr))
+    // If operator: 3-arg ternary (If(condition, trueExpr, falseExpr)) or
+    // 2-arg null-coalescing (If(expr, ifNothingExpr)) — false_branch is
+    // omitted for the 2-arg form.
     ternary_expression: $ => prec.right(seq(
       kw('If'),
       '(',
       field('condition', $.expression), ',',
-      field('true_branch', $.expression), ',',
-      field('false_branch', $.expression),
+      field('true_branch', $.expression),
+      optional(seq(',', field('false_branch', $.expression))),
       ')'
     )),
 
