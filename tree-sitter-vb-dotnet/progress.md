@@ -10,7 +10,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes four of those gaps:
+3. Fixes five of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
@@ -20,28 +20,30 @@ none of its known parsing gaps were tracked as regression tests. This PR:
      `ERROR` either side of an otherwise-correct `type_parameters`/`generic_type` node.
    - generic method/function *calls* with explicit type arguments (`GetItem(Of String)(...)`) had
      no grammar support at the call site at all.
+   - VB.NET's 2-argument null-coalescing `If(expr, ifNothingExpr)` had no grammar support — only
+     the 3-argument ternary `If(condition, true, false)` form existed.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (10 tests), `statements.txt` (8 tests, incl. the `Do`-prefix fix and the
-  generic-call fix) — baseline coverage: modules, classes, interfaces, structures, properties
-  (auto + get/set), if/select/for/while/try, nested classes, generic class/method declarations,
-  generic field/return types, generic method calls. All pass; this is what proves the corpus-test
-  plumbing works end to end (CI already runs `tree-sitter test` per grammar folder via
-  `.github/workflows/test.yml`).
+- `declarations.txt` (10 tests), `statements.txt` (9 tests, incl. the `Do`-prefix fix, the
+  generic-call fix, and the 2-arg `If` fix) — baseline coverage: modules, classes, interfaces,
+  structures, properties (auto + get/set), if/select/for/while/try, nested classes, generic
+  class/method declarations, generic field/return types, generic method calls, 2-arg `If`. All
+  pass; this is what proves the corpus-test plumbing works end to end (CI already runs
+  `tree-sitter test` per grammar folder via `.github/workflows/test.yml`).
 - `known_gaps.txt` (2 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
   out of this file into `declarations.txt`/`statements.txt`.
-  - **Constructors with generic-collection parameters lose sibling declarations** — a parameter
-    list combining an attribute (`<[In], Out>`), `ByRef`, a generic type
-    (`CompoundUseSiteInfo(Of AssemblySymbol)`), and `Optional ... = Nothing` defaults across
-    multiple lines breaks parsing of the entire surrounding class *and* its sibling `Structure`.
-    Repro is a verbatim excerpt from `dotnet/roslyn`'s `BasesBeingResolvedBinder.vb`. Confirmed
-    this is *not* fixed by the generics-declaration fix below (still 18 `ERROR` nodes) — it's a
-    distinct, compounding combination of factors seen in real code.
+  - **Generic type used as a value for static member access** — e.g.
+    `ConsList(Of TypeSymbol).Empty`. This is what's left of the old "constructors with
+    generic-collection parameters" gap: every other factor in that real-world repro (attribute +
+    `ByRef` + generic-type parameter, `Optional` defaults, generic field types, `Shared ReadOnly
+    Property`, and the 2-arg `If`) is now fixed; only this one remains, so it's isolated into its
+    own minimal test. Tried fixing it (see "Attempted and reverted" below) — genuinely harder than
+    the other gaps, not a quick follow-up.
   - **`Inherits`/`Implements` on separate lines produce ERROR nodes** — real VB.NET style is
     `Inherits`/`Implements` as their own statement, one per line, right after the class header.
     The grammar only accepts them inline on the header line (before the statement terminator), so
@@ -135,11 +137,54 @@ Verified:
   `ERROR`, with `type_arguments` and `arguments` as two separate, correctly-shaped fields.
 - No regressions: full corpus suite unaffected elsewhere.
 
+### Grammar fix: 2-argument `If` null-coalescing operator (`grammar.js`)
+
+`ternary_expression` (VB's `If` operator) only supported the 3-argument ternary form
+(`If(condition, true, false)`). VB.NET's other `If` form — `If(expr, ifNothingExpr)`, 2 arguments,
+null-coalescing (returns `expr` unless it's `Nothing`, else `ifNothingExpr`) — has no dedicated rule
+at all, so `If(a, b)` failed to parse (the grammar only recognizes `kw('If')` as the start of either
+`if_statement` or the 3-arg `ternary_expression`, and neither accepts a 2-arg call shape).
+
+Fix: make `false_branch` optional in `ternary_expression` — `field('true_branch', ...)` then
+`optional(seq(',', field('false_branch', ...)))`. Clean regenerate, no new conflicts (unlike the
+attempt below).
+
+Verified:
+- `If(a, b)` — zero `ERROR`.
+- `If(cond, a, b).Prepend(symbol)` (3-arg form with a chained call) — still zero `ERROR`, confirming
+  chaining onto a ternary result was never the problem; only the 2-arg form itself was missing.
+- No regressions: full corpus suite unaffected elsewhere.
+
+### Attempted and reverted: generic type as a value expression
+
+Tried to fix `ConsList(Of TypeSymbol).Empty` (a generic type used as a value, e.g. for static member
+access) by adding `$.generic_type` to `expression`'s choices. This is structurally harder than the
+other gaps and was reverted:
+
+- Adding `$.generic_type` directly to `expression` created a real ambiguity with `member_access`
+  (both start with the same `identifier` prefix before diverging — `namespace_name` can extend with
+  more dots, or reduce immediately to a complete `identifier` expression). Declaring the conflict
+  tree-sitter's error suggested (`[$.namespace_name, $.expression]`) made it build, but at runtime
+  the parser always eagerly reduced to the bare identifier first (this is a shift/reduce table
+  decision made at build time, not a runtime GLR merge — `prec.dynamic()` doesn't affect it, since
+  that only resolves ties between multiple *successfully completed* parses, not shift-vs-reduce
+  timing) and the type-argument-list still landed as an orphan `ERROR`.
+- Tried instead adding an optional `type_argument_list` directly to `member_access` between `object`
+  and the dot (mirroring the `invocation` fix, which worked cleanly). This cascaded into new
+  conflicts with `element_access`, then `unary_expression`, then `binary_expression`, each requiring
+  another declared conflict — because *any* `expression` followed by `(` is now ambiguous with this
+  new form, not just the one case we care about. Stopped rather than keep adding conflicts blind.
+
+Whoever picks this up next should expect to need a more structural change — e.g. a dedicated rule
+for "generic type as a value" that's distinguishable from a plain identifier *before* the parser
+commits to reducing it, not a `choice` alternative bolted onto the general `expression`/
+`member_access` rules.
+
 ## Verification
 
 ```
 tree-sitter generate --abi 14   # clean, no warnings
-tree-sitter test                # 17 passing, 2 known gaps (intentionally failing)
+tree-sitter test                # 18 passing, 2 known gaps (intentionally failing)
 ```
 
 ## Also fixed in this branch (housekeeping, no behavior change)
@@ -159,6 +204,6 @@ tree-sitter test                # 17 passing, 2 known gaps (intentionally failin
   `structure_block`/`interface_block` to after the statement terminator instead of before it.
 - Re-verify `vb-parser-breaks.md` #18/#19/#20/#21 against the current grammar now that #17's actual
   behavior didn't match the doc — the doc may need a broader refresh, not just new corpus tests.
-- Re-check the "constructors with generic-collection parameters" gap now that plain generics are
-  fixed — still broken (18 `ERROR` nodes), so the remaining factors (parameter attribute, `ByRef`,
-  multi-line `Optional` defaults) are the real blocker there, not generics itself.
+- Fix generic type as a value expression (`ConsList(Of TypeSymbol).Empty`) — see "Attempted and
+  reverted" above for what doesn't work; needs a structurally different approach than the other
+  fixes in this branch.
