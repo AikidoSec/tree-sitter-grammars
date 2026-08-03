@@ -10,7 +10,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes three of those gaps:
+3. Fixes four of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
@@ -18,25 +18,23 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    - generic type parameters `(Of T)` on class/method declarations, and generic types `(Of T)` on
      field/return types, were missing their surrounding parens in the grammar and misparsed as
      `ERROR` either side of an otherwise-correct `type_parameters`/`generic_type` node.
+   - generic method/function *calls* with explicit type arguments (`GetItem(Of String)(...)`) had
+     no grammar support at the call site at all.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (10 tests), `statements.txt` (7 tests, incl. the `Do`-prefix fix) — baseline
-  coverage: modules, classes, interfaces, structures, properties (auto + get/set),
-  if/select/for/while/try, nested classes, generic class/method declarations and generic
-  field/return types. All pass; this is what proves the corpus-test plumbing works end to end (CI
-  already runs `tree-sitter test` per grammar folder via `.github/workflows/test.yml`).
-- `known_gaps.txt` (3 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
+- `declarations.txt` (10 tests), `statements.txt` (8 tests, incl. the `Do`-prefix fix and the
+  generic-call fix) — baseline coverage: modules, classes, interfaces, structures, properties
+  (auto + get/set), if/select/for/while/try, nested classes, generic class/method declarations,
+  generic field/return types, generic method calls. All pass; this is what proves the corpus-test
+  plumbing works end to end (CI already runs `tree-sitter test` per grammar folder via
+  `.github/workflows/test.yml`).
+- `known_gaps.txt` (2 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
   out of this file into `declarations.txt`/`statements.txt`.
-  - **Generic method call type arguments are not supported** — `GetItem(Of String)("key")` has no
-    grammar support for an explicit `(Of T)` type-argument list before a call's real argument list,
-    so it misparses as a call with two bogus arguments (`Of`, `String`) followed by the real
-    `("key")` misread as an indexer on the result. This is a separate grammar surface from generic
-    *declarations* (see the fix below) — declarations are now fixed, call sites aren't yet.
   - **Constructors with generic-collection parameters lose sibling declarations** — a parameter
     list combining an attribute (`<[In], Out>`), `ByRef`, a generic type
     (`CompoundUseSiteInfo(Of AssemblySymbol)`), and `Optional ... = Nothing` defaults across
@@ -117,11 +115,31 @@ Verified:
   earlier grammar snapshot; only #17 and #20 matched what was reproduced here.
 - No regressions: full corpus suite unaffected elsewhere.
 
+### Grammar fix: generic method/function calls (`grammar.js`)
+
+`invocation` (the grammar rule behind any `target(args)` call, e.g. `GetItem(...)`,
+`obj.Method(...)`) had no way to accept an explicit `(Of T)` type-argument list between the target
+and the real argument list, so `GetItem(Of String)("key")` parsed as a call to `GetItem` with two
+bogus arguments (`Of`, `String`), with the real `("key")` then misread as an `element_access`
+(array/indexer) on the call's result — matches `vb-parser-breaks.md` #20 closely (minor wording
+difference: the doc says `Of` itself is `ERROR`; what's actually produced is `Of`/`String` parsed
+as two valid-looking bogus arguments, with the `ERROR` landing on the real argument list instead).
+
+Fix: add an `optional(field('type_arguments', $.type_argument_list))` between `target` and
+`arguments` in `invocation`. `type_argument_list` (fixed in the previous commit) already starts
+with `'(' kw('Of')`, so the parser can distinguish it from a plain `argument_list` by that second
+token — no new grammar conflict, clean regenerate.
+
+Verified:
+- `GetItem(Of String)("key")` and `services.Configure(Of T)(x)` (member-access target) — both zero
+  `ERROR`, with `type_arguments` and `arguments` as two separate, correctly-shaped fields.
+- No regressions: full corpus suite unaffected elsewhere.
+
 ## Verification
 
 ```
 tree-sitter generate --abi 14   # clean, no warnings
-tree-sitter test                # 16 passing, 3 known gaps (intentionally failing)
+tree-sitter test                # 17 passing, 2 known gaps (intentionally failing)
 ```
 
 ## Also fixed in this branch (housekeeping, no behavior change)
@@ -139,9 +157,7 @@ tree-sitter test                # 16 passing, 3 known gaps (intentionally failin
   `statements.txt` — likely already fixed by the `Do`-prefix change, needs verification.
 - Fix `Inherits`/`Implements` on separate lines: move the optional clauses in `class_block`/
   `structure_block`/`interface_block` to after the statement terminator instead of before it.
-- Add generic type arguments to call sites (`GetItem(Of String)(...)`) — add an optional
-  `type_argument_list` to the invocation/call grammar before the regular `argument_list`.
-- Re-verify `vb-parser-breaks.md` #18/#19/#21 against the current grammar now that #17/#20's actual
+- Re-verify `vb-parser-breaks.md` #18/#19/#20/#21 against the current grammar now that #17's actual
   behavior didn't match the doc — the doc may need a broader refresh, not just new corpus tests.
 - Re-check the "constructors with generic-collection parameters" gap now that plain generics are
   fixed — still broken (18 `ERROR` nodes), so the remaining factors (parameter attribute, `ByRef`,

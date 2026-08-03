@@ -321,3 +321,37 @@ End Module
               (invocation
                 (identifier)
                 (argument_list)))))))))
+
+================================================================================
+Generic method call with explicit type arguments
+================================================================================
+
+Module M
+	Sub Main()
+		GetItem(Of String)("key")
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (type_argument_list
+                  (type
+                    (primitive_type)))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (string_literal)))))))))))))
