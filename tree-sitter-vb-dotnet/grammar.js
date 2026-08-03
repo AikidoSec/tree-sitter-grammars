@@ -240,7 +240,7 @@ module.exports = grammar({
       $.constructor_declaration,
       $.property_declaration,
       $.event_declaration,
-      $.delegate_declaration    // nested delegate type
+      $.type_declaration        // nested class/structure/interface/enum/delegate
     ),
 
     // Constant definitions (inside classes or procedures)

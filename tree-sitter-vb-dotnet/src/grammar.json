@@ -1552,7 +1552,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "delegate_declaration"
+          "name": "type_declaration"
         }
       ]
     },

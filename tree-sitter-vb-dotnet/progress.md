@@ -8,35 +8,40 @@ none of its known parsing gaps were tracked as regression tests. This PR:
 1. Adds `test/corpus/` with a baseline suite covering syntax the grammar already handles correctly.
 2. Ports the known grammar gaps found while benchmarking autotriage's VB.NET call-tracing (see
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
-   `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal (or
-   verbatim real-world) repro pinned in the grammar repo itself.
-3. Fixes one of those gaps: identifiers that start with a keyword (`DoWork`, `SelectAll`, ...)
-   were being split into `ERROR` + orphan identifier instead of parsing as one identifier.
+   `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
+   pinned in the grammar repo itself.
+3. Fixes two of those gaps:
+   - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
+     `ERROR` + orphan identifier instead of parsing as one identifier.
+   - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
+     production at all, so it (and every sibling declaration after it) misparsed as `ERROR`.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (7 tests), `statements.txt` (6 tests, incl. the newly-fixed one below) —
+- `declarations.txt` (8 tests), `statements.txt` (7 tests, incl. the newly-fixed `Do`-prefix one) —
   baseline coverage: modules, classes, interfaces, structures, properties (auto + get/set),
-  if/select/for/while/try. All pass; this is what proves the corpus-test plumbing works end to
-  end (CI already runs `tree-sitter test` per grammar folder via `.github/workflows/test.yml`).
+  if/select/for/while/try, nested classes. All pass; this is what proves the corpus-test plumbing
+  works end to end (CI already runs `tree-sitter test` per grammar folder via
+  `.github/workflows/test.yml`).
 - `known_gaps.txt` (3 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
   out of this file into `declarations.txt`/`statements.txt`.
-  - **Nested class declaration breaks extraction of everything after it** — a `Class`/`Structure`/
-    `Interface` nested inside another type misparses as a garbled `field_declaration` + `ERROR`,
-    and the cascade loses every subsequent sibling declaration. Repro is a verbatim excerpt from
-    `dotnet/roslyn`'s `AbstractFlowPass.vb`.
+  - **Generic type parameters `(Of T)` are not supported** — `(Of T)` type-parameter lists don't
+    parse anywhere in this grammar: class/method declarations, field/return types, and call sites
+    all break in different ways (see `vb-parser-breaks.md` #17-21). Minimal repro:
+    `Public Class Container(Of T)`. This used to be entangled with the nested-class gap below,
+    since every real-world repro of nested classes we found also happened to use generics — split
+    into its own minimal case once the nested-class fix landed and showed the two were unrelated.
   - **Constructors with generic-collection parameters lose sibling declarations** — a parameter
     list combining an attribute (`<[In], Out>`), `ByRef`, a generic type
     (`CompoundUseSiteInfo(Of AssemblySymbol)`), and `Optional ... = Nothing` defaults across
     multiple lines breaks parsing of the entire surrounding class *and* its sibling `Structure`.
-    Repro is a verbatim excerpt from `dotnet/roslyn`'s `BasesBeingResolvedBinder.vb`. Root cause
-    likely overlaps with the fact that this grammar has no `(Of T)` generic-type support at all
-    (affects class/method declarations, field types, return types, and call sites alike — see
-    `vb-parser-breaks.md` items #17-21).
+    Repro is a verbatim excerpt from `dotnet/roslyn`'s `BasesBeingResolvedBinder.vb` — a second,
+    compounding data point on top of the minimal generics case above, kept since it's a distinct
+    combination of factors seen in real code.
   - **`Inherits`/`Implements` on separate lines produce ERROR nodes** — real VB.NET style is
     `Inherits`/`Implements` as their own statement, one per line, right after the class header.
     The grammar only accepts them inline on the header line (before the statement terminator), so
@@ -62,11 +67,33 @@ Fix: drop the `prec()` boost from `kw()` — `token(ci(word))`. Verified:
 This likely also fixes `vb-parser-breaks.md` gap #2 (`Select`-prefix identifiers) — not yet
 ported into a corpus test.
 
+### Grammar fix: nested type declarations (`grammar.js`)
+
+`_member_declaration` — the set of things allowed inside a class/module/structure/interface body —
+had no `type_declaration` alternative at all, so a nested `Class`/`Structure`/`Interface`/`Enum`
+had no valid production once inside another type's body. The parser fell into error recovery on
+the nested type's header line, which (depending on the surrounding code) could cascade into losing
+every sibling declaration that followed.
+
+Fix: add `$.type_declaration` to `_member_declaration`, and drop the now-redundant direct
+`$.delegate_declaration` entry (delegates are already one of `type_declaration`'s alternatives;
+keeping both created a genuine grammar ambiguity — "Unresolved conflict for symbol sequence").
+
+Verified:
+- Minimal nested-class repro (`Container` → nested `Inner` class → sibling method) now parses with
+  zero `ERROR` nodes, including the sibling method declared *after* the nested class.
+- Re-parsed the real verbatim Roslyn excerpt that originally surfaced this bug
+  (`AbstractFlowPass.vb`'s nested `SavedPending` class): the nested class and its sibling
+  `SavePending` function are now both structurally correct. Every remaining `ERROR` in that file is
+  adjacent to `(Of T)` generic-type syntax — confirming the nested-class cascade is fully fixed and
+  what's left there is entirely the separate generics gap.
+- No regressions: full corpus suite unaffected elsewhere.
+
 ## Verification
 
 ```
 tree-sitter generate --abi 14   # clean, no warnings
-tree-sitter test                # 13 passing, 3 known gaps (intentionally failing)
+tree-sitter test                # 14 passing, 3 known gaps (intentionally failing)
 ```
 
 ## Also fixed in this branch (housekeeping, no behavior change)
@@ -84,6 +111,5 @@ tree-sitter test                # 13 passing, 3 known gaps (intentionally failin
   `statements.txt` — likely already fixed by the same change, needs verification.
 - Fix `Inherits`/`Implements` on separate lines: move the optional clauses in `class_block`/
   `structure_block`/`interface_block` to after the statement terminator instead of before it.
-- Investigate nested class declaration cascade and generic-parameter-list parsing — both larger,
-  likely-related pieces of work (the latter needs `(Of T)` generic-type support designed from
-  scratch, which touches many rules).
+- Design `(Of T)` generic-type support — the largest remaining piece, since it touches class/method
+  declarations, field/return types, and call sites throughout the grammar rather than one rule.
