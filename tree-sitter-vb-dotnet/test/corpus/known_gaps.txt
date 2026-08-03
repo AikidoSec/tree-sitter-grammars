@@ -25,9 +25,6 @@ End Namespace
 
 --------------------------------------------------------------------------------
 
-; known grammar bug: nested type declarations misparse and cascade into
-; losing every subsequent sibling declaration. Left blank until fixed —
-; this test is expected to fail (run `tree-sitter test -u` once resolved).
 (source_file)
 
 ================================================================================
@@ -77,28 +74,6 @@ End Namespace
 
 --------------------------------------------------------------------------------
 
-; known grammar bug: this parameter list (attribute + ByRef + generic type +
-; Optional defaults, spread across multiple lines) breaks parsing of the
-; entire surrounding class and its sibling Structure. Left blank until fixed —
-; this test is expected to fail (run `tree-sitter test -u` once resolved).
-(source_file)
-
-================================================================================
-[gap] Do-prefix identifier collides with the Do-loop keyword
-================================================================================
-
-Module Program
-	Sub Main()
-		DoWork()
-	End Sub
-End Module
-
---------------------------------------------------------------------------------
-
-; known grammar bug: any call/identifier starting with "Do" (DoWork, Download,
-; Done, ...) is greedily lexed as the start of a `do_statement`, corrupting the
-; call and everything after it in the enclosing block. Left blank until fixed —
-; this test is expected to fail (run `tree-sitter test -u` once resolved).
 (source_file)
 
 ================================================================================
@@ -112,9 +87,4 @@ End Class
 
 --------------------------------------------------------------------------------
 
-; known grammar bug: `Inherits`/`Implements` as their own statement (the
-; normal VB.NET style, one per line) misparses as a `field_declaration` +
-; ERROR instead of a proper inherits/implements clause — happens even when
-; only one of the two clauses is present. Left blank until fixed — this test
-; is expected to fail (run `tree-sitter test -u` once resolved).
 (source_file)

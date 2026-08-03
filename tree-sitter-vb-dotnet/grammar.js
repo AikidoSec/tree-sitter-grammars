@@ -953,8 +953,11 @@ function commaSep(rule) {
 }
 
 function kw(word) {
-  // token + positive precedence guarantees the keyword wins ties
-  return token(prec(1, ci(word)));
+  // No precedence boost: tree-sitter's lexer picks the *longest* match among
+  // competing tokens, so a plain token already lets "DoWork" win over "Do" as
+  // an identifier. A prec() boost here would make the short keyword win
+  // instead, splitting "DoWork"/"SelectAll" into keyword + orphan identifier.
+  return token(ci(word));
 }
 
 // Helper: comma-separated list (one or more), allowing a newline after commas
