@@ -470,3 +470,58 @@ End Interface
       (method_declaration
         (identifier)
         (parameter_list)))))
+
+================================================================================
+Preprocessor #If/#Else/#End If wrapping alternate member declarations
+================================================================================
+
+Public Class Foo
+#If REFERENCE_STATE Then
+	Public Sub DoWork(x As Integer)
+	End Sub
+#Else
+	Public Sub DoWork(x As Integer, y As Integer)
+	End Sub
+#End If
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (preprocessor_directive)
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))))
+      (preprocessor_directive)
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))))
+      (preprocessor_directive)
+      (blank_line))))

@@ -491,6 +491,10 @@
           "named": true
         },
         {
+          "type": "preprocessor_directive",
+          "named": true
+        },
+        {
           "type": "property_declaration",
           "named": true
         },
@@ -1435,6 +1439,10 @@
           "named": true
         },
         {
+          "type": "preprocessor_directive",
+          "named": true
+        },
+        {
           "type": "property_declaration",
           "named": true
         },
@@ -1830,6 +1838,10 @@
         },
         {
           "type": "method_declaration",
+          "named": true
+        },
+        {
+          "type": "preprocessor_directive",
           "named": true
         },
         {
@@ -2525,6 +2537,10 @@
         },
         {
           "type": "method_declaration",
+          "named": true
+        },
+        {
+          "type": "preprocessor_directive",
           "named": true
         },
         {

@@ -10,7 +10,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes six of those gaps:
+3. Fixes seven of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
@@ -24,18 +24,24 @@ none of its known parsing gaps were tracked as regression tests. This PR:
      the 3-argument ternary `If(condition, true, false)` form existed.
    - `Inherits`/`Implements` — real VB.NET style is one per line, right after the class header —
      were only accepted inline on the header line itself, before the statement terminator.
+   - Preprocessor directives (`#If`/`#Else`/`#End If`, `#Region`/`#End Region`, ...) had no valid
+     production at member level (class/module/structure/interface body) — only inside statement
+     lists (method bodies) — so wrapping alternate member declarations (e.g. two method overloads
+     behind `#If ... Then` / `#Else`) misparsed as `ERROR`. Found while investigating a residual
+     cascade in `DefinitelyAssignedWalker.vb` during autotriage benchmarking, not from
+     `vb-parser-breaks.md` (not previously documented there).
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (12 tests), `statements.txt` (9 tests, incl. the `Do`-prefix fix, the
+- `declarations.txt` (13 tests), `statements.txt` (9 tests, incl. the `Do`-prefix fix, the
   generic-call fix, and the 2-arg `If` fix) — baseline coverage: modules, classes, interfaces,
   structures, properties (auto + get/set), if/select/for/while/try, nested classes, generic
   class/method declarations, generic field/return types, generic method calls, 2-arg `If`,
-  separate-line `Inherits`/`Implements`. All pass; this is what proves the corpus-test plumbing
-  works end to end (CI already runs `tree-sitter test` per grammar folder via
-  `.github/workflows/test.yml`).
+  separate-line `Inherits`/`Implements`, member-level preprocessor directives. All pass; this is
+  what proves the corpus-test plumbing works end to end (CI already runs `tree-sitter test` per
+  grammar folder via `.github/workflows/test.yml`).
 - `known_gaps.txt` (1 test) — known bug, pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
@@ -201,11 +207,43 @@ Verified:
   other two rules touched by this fix) — zero `ERROR` each.
 - No regressions: full corpus suite unaffected elsewhere.
 
+### Grammar fix: preprocessor directives at member level (`grammar.js`)
+
+Found while re-running the autotriage benchmark after packaging the fixes above: a residual
+cascade in `DefinitelyAssignedWalker.vb:65`, at a `#If REFERENCE_STATE Then ... #Else ... #End If`
+wrapping two overload signatures of the same method. Didn't reproduce in isolation at first (same
+"compound trigger" symptom the generic-constructor gap had) — turned out isolation just needed the
+right shape: two member declarations (not statements) inside the `#If`/`#Else` branches, not inside
+a method body.
+
+Root cause: `preprocessor_directive` (`#` + rest of line, one opaque token — no distinction between
+`#If`/`#Else`/`#End If`/`#Region`/`#Const`/etc.) was only listed as a `statement` alternative (valid
+inside method bodies), never as a `_member_declaration` alternative (valid directly inside a
+class/module/structure/interface body). So a `#If`/`#Else`/`#End If` wrapping two *member*
+declarations — the actual pattern real code uses to conditionally compile alternate method
+overloads — had no valid production at that level, even though the exact same directive works fine
+one level down inside a method. Same "where can this appear" category as the nested-type-declaration
+and `Inherits`/`Implements` fixes; not documented in `vb-parser-breaks.md` at all (a new finding, not
+a previously-known gap).
+
+Fix: add `$.preprocessor_directive` to `_member_declaration`. Since it's a single opaque line-token
+starting with `#` — a prefix no other member-declaration alternative starts with — this needed no
+conflict declaration; clean regenerate. Covers every preprocessor directive kind at member level in
+one fix, not just `#If`/`#Else`.
+
+Verified:
+- The real trigger's shape (two `Sub` overloads behind `#If ... Then` / `#Else` / `#End If`) — zero
+  `ERROR`, both method declarations found correctly on either side of the directives.
+- `#Region "Fields"` / `#End Region` wrapping a field declaration — zero `ERROR`.
+- `#If DEBUG Then` / `#End If` inside a method body (the pre-existing, already-working
+  statement-level case) — still zero `ERROR`, confirming no regression there.
+- No regressions: full corpus suite unaffected elsewhere.
+
 ## Verification
 
 ```
 tree-sitter generate --abi 14   # clean, no warnings
-tree-sitter test                # 20 passing, 1 known gap (intentionally failing)
+tree-sitter test                # 21 passing, 1 known gap (intentionally failing)
 ```
 
 ## Also fixed in this branch (housekeeping, no behavior change)
@@ -280,3 +318,15 @@ Verified:
   quick grammar tweak like the fixes above — almost certainly needs an external C scanner tracking
   bracket/paren depth (this grammar has none today), the same category of problem as Python's
   INDENT/DEDENT scanner.
+
+## Benchmark results (re-run against `dotnet/roslyn` after this branch's fixes)
+
+Affected-file count (files where `extractAllFunctionDeclarations()` misses ground-truth functions)
+dropped from 299 → 163: 894 files clean, cascade files down from 185 → 60, scattered-miss files down
+from 114 → 103, consistent with the nested-class and generic-collection-parameter bugs (the two
+biggest, most-cascading root causes) being fixed. The preprocessor-directive fix in this commit was
+found while characterizing one of the remaining 60 cascade files (`DefinitelyAssignedWalker.vb:65`);
+the other cascade triggers in that remaining set haven't been characterized yet and may be a mix of
+distinct new causes rather than tails of already-fixed ones — worth another characterization pass
+before deciding whether to keep chasing individual cascade files or treat the current ~66% overall
+rate as the checkpoint to report.
