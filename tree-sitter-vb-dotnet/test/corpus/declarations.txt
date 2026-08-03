@@ -343,3 +343,77 @@ End Class
             (expression
               (literal
                 (integer_literal)))))))))
+
+================================================================================
+Generic class declaration with type parameter
+================================================================================
+
+Public Class Container(Of T)
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier))))))
+
+================================================================================
+Generic method declaration and generic field/return type
+================================================================================
+
+Public Class Foo
+	Public Items As List(Of Integer)
+	Public Function GetItem(Of T)(key As String) As T
+		Return Nothing
+	End Function
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (generic_type
+                (namespace_name
+                  (identifier))
+                (type_argument_list
+                  (type
+                    (primitive_type))))))))
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (type_parameters
+          (type_parameter
+            (identifier)))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (type
+          (namespace_name
+            (identifier)))
+        (statement
+          (return_statement
+            (expression
+              (literal))))))))
