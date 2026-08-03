@@ -448,40 +448,58 @@
           ]
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "inherits",
-              "content": {
-                "type": "SYMBOL",
-                "name": "inherits_clause"
-              }
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "FIELD",
-              "name": "implements",
-              "content": {
-                "type": "SYMBOL",
-                "name": "implements_clause"
-              }
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
           "type": "SYMBOL",
           "name": "_terminator"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "inherits",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "inherits_clause"
+                  }
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_terminator"
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "implements",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "implements_clause"
+                  }
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_terminator"
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "REPEAT",
@@ -622,24 +640,33 @@
           ]
         },
         {
+          "type": "SYMBOL",
+          "name": "_terminator"
+        },
+        {
           "type": "CHOICE",
           "members": [
             {
-              "type": "FIELD",
-              "name": "implements",
-              "content": {
-                "type": "SYMBOL",
-                "name": "implements_clause"
-              }
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "implements",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "implements_clause"
+                  }
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_terminator"
+                }
+              ]
             },
             {
               "type": "BLANK"
             }
           ]
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_terminator"
         },
         {
           "type": "REPEAT",
@@ -715,24 +742,33 @@
           ]
         },
         {
+          "type": "SYMBOL",
+          "name": "_terminator"
+        },
+        {
           "type": "CHOICE",
           "members": [
             {
-              "type": "FIELD",
-              "name": "inherits",
-              "content": {
-                "type": "SYMBOL",
-                "name": "inherits_clause"
-              }
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "inherits",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "inherits_clause"
+                  }
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "_terminator"
+                }
+              ]
             },
             {
               "type": "BLANK"
             }
           ]
-        },
-        {
-          "type": "SYMBOL",
-          "name": "_terminator"
         },
         {
           "type": "REPEAT",

@@ -417,3 +417,56 @@ End Class
           (return_statement
             (expression
               (literal))))))))
+
+================================================================================
+Class with Inherits and Implements on separate lines
+================================================================================
+
+Public Class Dog
+	Inherits Animal
+	Implements IBarker
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (inherits_clause
+        (type
+          (namespace_name
+            (identifier))))
+      (implements_clause
+        (type
+          (namespace_name
+            (identifier)))))))
+
+================================================================================
+Interface with Inherits on separate line
+================================================================================
+
+Public Interface IFoo
+	Inherits IBar
+	Sub DoWork()
+End Interface
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (interface_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (inherits_clause
+        (type
+          (namespace_name
+            (identifier))))
+      (method_declaration
+        (identifier)
+        (parameter_list)))))

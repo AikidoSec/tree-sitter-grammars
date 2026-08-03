@@ -104,15 +104,16 @@ module.exports = grammar({
       kw('End'), kw('Namespace'), $._terminator
     ),
 
-    // Class definition block
+    // Class definition block. Inherits/Implements are their own statement,
+    // one per line, right after the class header — not inline on it.
     class_block: $ => seq(
       field('modifiers', optional($.modifiers)),
       kw('Class'),
       field('name', $.identifier),
       optional($.type_parameters),
-      optional(field('inherits', $.inherits_clause)),
-      optional(field('implements', $.implements_clause)),
       $._terminator,
+      optional(seq(field('inherits', $.inherits_clause), $._terminator)),
+      optional(seq(field('implements', $.implements_clause), $._terminator)),
       repeat($._member_declaration),
       kw('End'), kw('Class'), $._terminator
     ),
@@ -133,8 +134,8 @@ module.exports = grammar({
       kw('Structure'),
       field('name', $.identifier),
       optional($.type_parameters),
-      optional(field('implements', $.implements_clause)),
       $._terminator,
+      optional(seq(field('implements', $.implements_clause), $._terminator)),
       repeat($._member_declaration),
       kw('End'), kw('Structure'), $._terminator
     ),
@@ -145,8 +146,8 @@ module.exports = grammar({
       kw('Interface'),
       field('name', $.identifier),
       optional($.type_parameters),
-      optional(field('inherits', $.inherits_clause)), // interfaces can inherit multiple interfaces
       $._terminator,
+      optional(seq(field('inherits', $.inherits_clause), $._terminator)), // interfaces can inherit multiple interfaces
       repeat($._member_declaration),
       kw('End'), kw('Interface'), $._terminator
     ),

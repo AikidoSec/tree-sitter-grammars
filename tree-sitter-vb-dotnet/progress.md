@@ -10,7 +10,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes five of those gaps:
+3. Fixes six of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
@@ -22,18 +22,21 @@ none of its known parsing gaps were tracked as regression tests. This PR:
      no grammar support at the call site at all.
    - VB.NET's 2-argument null-coalescing `If(expr, ifNothingExpr)` had no grammar support — only
      the 3-argument ternary `If(condition, true, false)` form existed.
+   - `Inherits`/`Implements` — real VB.NET style is one per line, right after the class header —
+     were only accepted inline on the header line itself, before the statement terminator.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (10 tests), `statements.txt` (9 tests, incl. the `Do`-prefix fix, the
+- `declarations.txt` (12 tests), `statements.txt` (9 tests, incl. the `Do`-prefix fix, the
   generic-call fix, and the 2-arg `If` fix) — baseline coverage: modules, classes, interfaces,
   structures, properties (auto + get/set), if/select/for/while/try, nested classes, generic
-  class/method declarations, generic field/return types, generic method calls, 2-arg `If`. All
-  pass; this is what proves the corpus-test plumbing works end to end (CI already runs
-  `tree-sitter test` per grammar folder via `.github/workflows/test.yml`).
-- `known_gaps.txt` (2 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
+  class/method declarations, generic field/return types, generic method calls, 2-arg `If`,
+  separate-line `Inherits`/`Implements`. All pass; this is what proves the corpus-test plumbing
+  works end to end (CI already runs `tree-sitter test` per grammar folder via
+  `.github/workflows/test.yml`).
+- `known_gaps.txt` (1 test) — known bug, pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
   out of this file into `declarations.txt`/`statements.txt`.
@@ -44,11 +47,6 @@ none of its known parsing gaps were tracked as regression tests. This PR:
     Property`, and the 2-arg `If`) is now fixed; only this one remains, so it's isolated into its
     own minimal test. Tried fixing it (see "Attempted and reverted" below) — genuinely harder than
     the other gaps, not a quick follow-up.
-  - **`Inherits`/`Implements` on separate lines produce ERROR nodes** — real VB.NET style is
-    `Inherits`/`Implements` as their own statement, one per line, right after the class header.
-    The grammar only accepts them inline on the header line (before the statement terminator), so
-    the normal separate-line form misparses as `field_declaration` + `ERROR` — happens even with
-    only one of the two clauses present.
 
 ### Grammar fix: keyword-prefixed identifiers (`grammar.js`)
 
@@ -180,11 +178,34 @@ for "generic type as a value" that's distinguishable from a plain identifier *be
 commits to reducing it, not a `choice` alternative bolted onto the general `expression`/
 `member_access` rules.
 
+### Grammar fix: `Inherits`/`Implements` on separate lines (`grammar.js`)
+
+Real VB.NET style puts `Inherits`/`Implements` on their own line, right after the class/
+structure/interface header — never inline on the header itself. `class_block`, `structure_block`,
+and `interface_block` all placed `optional(inherits_clause)`/`optional(implements_clause)` *before*
+`$._terminator`, so the grammar only accepted the (never-actually-used-in-practice) inline form; the
+normal separate-line form had no member-level slot to land in and misparsed as `field_declaration` +
+`ERROR`, the same category of bug as the nested-type-declaration fix earlier in this branch (a
+missing "where can this appear" case, not a lexer/precedence issue like most of the others).
+
+Fix: move `inherits`/`implements` to after `$._terminator` in all three rules, each now followed by
+its own terminator: `optional(seq(field('inherits', $.inherits_clause), $._terminator))`, same for
+`implements`. Only unrelated wrinkle: `namespace_name`/`inherits_clause`/`implements_clause` rules
+themselves needed no changes — this was purely about *where* they're allowed to appear.
+
+Verified:
+- The original gap repro (`Inherits Animal` then `Implements IBarker`, each on its own line) — zero
+  `ERROR`, both clauses correctly attached as `inherits`/`implements` fields on `class_block`.
+- `Inherits`-only and `Implements`-only (with comma-separated interfaces) on a class — zero `ERROR`.
+- `Interface` with `Inherits` on its own line, `Structure` with `Implements` on its own line (the
+  other two rules touched by this fix) — zero `ERROR` each.
+- No regressions: full corpus suite unaffected elsewhere.
+
 ## Verification
 
 ```
 tree-sitter generate --abi 14   # clean, no warnings
-tree-sitter test                # 18 passing, 2 known gaps (intentionally failing)
+tree-sitter test                # 20 passing, 1 known gap (intentionally failing)
 ```
 
 ## Also fixed in this branch (housekeeping, no behavior change)
@@ -200,10 +221,14 @@ tree-sitter test                # 18 passing, 2 known gaps (intentionally failin
 
 - Port `vb-parser-breaks.md` gap #2 (`Select`-prefix identifiers) as a corpus test in
   `statements.txt` — likely already fixed by the `Do`-prefix change, needs verification.
-- Fix `Inherits`/`Implements` on separate lines: move the optional clauses in `class_block`/
-  `structure_block`/`interface_block` to after the statement terminator instead of before it.
 - Re-verify `vb-parser-breaks.md` #18/#19/#20/#21 against the current grammar now that #17's actual
   behavior didn't match the doc — the doc may need a broader refresh, not just new corpus tests.
 - Fix generic type as a value expression (`ConsList(Of TypeSymbol).Empty`) — see "Attempted and
   reverted" above for what doesn't work; needs a structurally different approach than the other
   fixes in this branch.
+- `vb-parser-breaks.md` #23-25 (multi-line implicit line continuation — argument lists, `New With
+  {}` initializers, lambda bodies spanning lines without a trailing `_`) is a separate, much larger
+  gap: `_newline` is an unconditional `/\r?\n/` with no context awareness at all, so it's not a
+  quick grammar tweak like the fixes above — almost certainly needs an external C scanner tracking
+  bracket/paren depth (this grammar has none today), the same category of problem as Python's
+  INDENT/DEDENT scanner.
