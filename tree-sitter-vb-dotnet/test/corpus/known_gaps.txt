@@ -1,27 +1,9 @@
 ================================================================================
-[gap] nested class declaration breaks extraction of everything after it
+[gap] generic type parameters (Of T) are not supported
 ================================================================================
 
-Namespace Microsoft.CodeAnalysis.VisualBasic
-	Partial Friend MustInherit Class AbstractFlowPass(Of LocalState As AbstractLocalState)
-		Protected Class SavedPending
-			Public ReadOnly PendingBranches As ArrayBuilder(Of PendingBranch)
-			Public ReadOnly LabelsSeen As HashSet(Of LabelSymbol)
-
-			Public Sub New(ByRef _pendingBranches As ArrayBuilder(Of PendingBranch), ByRef _labelsSeen As HashSet(Of LabelSymbol))
-				Me.PendingBranches = _pendingBranches
-				Me.LabelsSeen = _labelsSeen
-
-				_pendingBranches = ArrayBuilder(Of PendingBranch).GetInstance()
-				_labelsSeen = New HashSet(Of LabelSymbol)
-			End Sub
-		End Class
-
-		Protected Function SavePending() As SavedPending
-			Return New SavedPending(Me._pendingBranches, Me._labelsSeen)
-		End Function
-	End Class
-End Namespace
+Public Class Container(Of T)
+End Class
 
 --------------------------------------------------------------------------------
 

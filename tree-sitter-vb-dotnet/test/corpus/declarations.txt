@@ -296,3 +296,50 @@ End Class
                     (identifier))
                   (expression
                     (identifier)))))))))))
+
+================================================================================
+Nested class declaration
+================================================================================
+
+Public Class Outer
+	Protected Class Inner
+		Public Sub New()
+		End Sub
+	End Class
+
+	Protected Function DoWork() As Integer
+		Return 1
+	End Function
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (type_declaration
+        (class_block
+          (modifiers
+            (modifier))
+          (identifier)
+          (constructor_declaration
+            (modifiers
+              (modifier))
+            (parameter_list))))
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (type
+          (primitive_type))
+        (statement
+          (return_statement
+            (expression
+              (literal
+                (integer_literal)))))))))
