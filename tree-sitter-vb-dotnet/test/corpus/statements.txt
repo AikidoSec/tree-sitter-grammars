@@ -502,10 +502,9 @@ End Module
             (expression
               (new_expression
                 (type
-                  (array_type
-                    (namespace_name
-                      (identifier))
-                    (array_rank_specifier)))
+                  (namespace_name
+                    (identifier)))
+                (argument_list)
                 (with_initializer
                   (member_initializer
                     (identifier)
@@ -576,3 +575,244 @@ End Module
                         (expression
                           (literal
                             (string_literal)))))))))))))))
+
+================================================================================
+Constructor call with arguments
+================================================================================
+
+Module M
+	Sub Main()
+		Dim conn = New SqlConnection(connStr)
+		Dim ex = New Exception("msg")
+		Dim p = New Point(x, y)
+		Dim q = New System.Text.StringBuilder(100)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (string_literal)))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier)))
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (invocation
+                (member_access
+                  (expression
+                    (member_access
+                      (expression
+                        (new_expression
+                          (type
+                            (namespace_name
+                              (identifier)))))
+                      (identifier)))
+                  (identifier))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))))))))))
+
+================================================================================
+Parameterless and generic constructor calls
+================================================================================
+
+Module M
+	Sub Main()
+		Dim sb = New StringBuilder()
+		Dim l = New List(Of Integer)()
+		Dim d = New Dictionary(Of String, Integer)(cmp)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (generic_type
+                    (namespace_name
+                      (identifier))
+                    (type_argument_list
+                      (type
+                        (primitive_type)))))
+                (argument_list)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (generic_type
+                    (namespace_name
+                      (identifier))
+                    (type_argument_list
+                      (type
+                        (primitive_type))
+                      (type
+                        (primitive_type)))))
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier))))))))))))
+
+================================================================================
+Array creation via New with a size and initializer
+================================================================================
+
+Module M
+	Sub Main()
+		Dim arr = New Integer(2) {1, 2, 3}
+		Dim inferred = New Integer() {1, 2, 3}
+		Dim empty = New String(9) {}
+		Dim rect = New Integer(1, 2) {}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (primitive_type))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))
+                (array_literal
+                  (expression
+                    (literal
+                      (integer_literal)))
+                  (expression
+                    (literal
+                      (integer_literal)))
+                  (expression
+                    (literal
+                      (integer_literal))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (primitive_type))
+                (argument_list)
+                (array_literal
+                  (expression
+                    (literal
+                      (integer_literal)))
+                  (expression
+                    (literal
+                      (integer_literal)))
+                  (expression
+                    (literal
+                      (integer_literal))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (primitive_type))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))
+                (array_literal)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (primitive_type))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal))))
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))
+                (array_literal)))))))))

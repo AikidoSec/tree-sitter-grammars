@@ -1936,6 +1936,10 @@
           "named": true
         },
         {
+          "type": "array_literal",
+          "named": true
+        },
+        {
           "type": "object_initializers",
           "named": true
         },
