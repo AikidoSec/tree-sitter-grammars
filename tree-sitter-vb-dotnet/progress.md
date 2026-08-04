@@ -10,7 +10,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes twelve of those gaps:
+3. Fixes fourteen of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
@@ -45,21 +45,31 @@ none of its known parsing gaps were tracked as regression tests. This PR:
      `New With {}` object initializers) was misparsed as a statement terminator. This is the first
      fix in this branch needing an external scanner (`src/scanner.c`, new — this grammar had none
      before) rather than a pure `grammar.js` change; see its own section below for how it works.
+   - **`New Type(args)` constructor calls** (`New SqlConnection(connStr)`, `New Exception("msg")`,
+     `New Point(x, y)`) produced `ERROR`, and parameterless `New Type()` silently misparsed as
+     `array_type` + empty rank — VB.NET reuses parens for both array-rank markers and call
+     arguments, and `new_expression` reused the general-purpose `type` rule (which ends in an
+     optional `array_rank_specifier`) right before its own `argument_list`. **And the other side of
+     the same ambiguity**: genuine array creation `New Integer(2) {1, 2, 3}` had no grammar support
+     at all, silently reading `(2)` as a bogus constructor argument and `{1, 2, 3}` as
+     `object_initializers`. Fixed together, since the disambiguator is the bare trailing `{…}`.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (14 tests), `statements.txt` (14 tests, incl. the `Do`-prefix fix, the
-  generic-call fix, the 2-arg `If` fix, the `Rem`-prefix fix, a baseline `REM`-comment test, and the
-  3 multi-line continuation fixes) — baseline coverage: modules, classes, interfaces, structures,
+- `declarations.txt` (14 tests), `statements.txt` (16 tests, incl. the `Do`-prefix fix, the
+  generic-call fix, the 2-arg `If` fix, the `Rem`-prefix fix, a baseline `REM`-comment test, the
+  3 multi-line continuation fixes, and the 3 `New` constructor-call/array-creation fixes) — baseline
+  coverage: modules, classes, interfaces, structures,
   properties (auto + get/set), if/select/for/while/try, nested classes, generic class/method
   declarations, generic field/return types, generic method calls, 2-arg `If`, separate-line
   `Inherits`/`Implements`, member-level preprocessor directives, comments, a leading comment before
-  `Imports`, multi-line argument lists and object initializers. All pass; this is what proves the
+  `Imports`, multi-line argument lists and object initializers, `New Type(args)` constructor calls
+  and `New T(n) {…}` array creation. All pass; this is what proves the
   corpus-test plumbing works end to end (CI already runs `tree-sitter test` per grammar folder via
   `.github/workflows/test.yml`).
-- `known_gaps.txt` (3 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
+- `known_gaps.txt` (1 test) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
   out of this file into `declarations.txt`/`statements.txt`.
@@ -70,11 +80,12 @@ none of its known parsing gaps were tracked as regression tests. This PR:
     Property`, and the 2-arg `If`) is now fixed; only this one remains, so it's isolated into its
     own minimal test. Tried fixing it (see "Attempted and reverted" below) — genuinely harder than
     the other gaps, not a quick follow-up.
-  - **Constructor call with arguments misparsed as array type** and **array creation via `New`
-    with a size and initializer** — two paired gaps, opposite sides of the same ambiguity
-    (VB.NET reuses parens for both array-rank markers and call arguments). See "Follow-up
-    investigation: `New Type(...)` constructor calls" below for the full writeup — likely the
-    highest real-world blast radius of anything in this branch, fixed or not.
+  - ~~**Constructor call with arguments misparsed as array type** and **array creation via `New`
+    with a size and initializer**~~ — two paired gaps, opposite sides of the same ambiguity
+    (VB.NET reuses parens for both array-rank markers and call arguments). **Both now fixed** and
+    moved into `statements.txt`; see "Follow-up investigation: `New Type(...)` constructor calls"
+    below for the original writeup and "Grammar fix: `New Type(args)` constructor calls and
+    `New T(n) {…}` array creation" for the fix.
 
 ### Grammar fix: keyword-prefixed identifiers (`grammar.js`)
 
@@ -389,6 +400,78 @@ Verified:
 - Full corpus suite unaffected elsewhere (including the `Imports`-leading-comment fix, which also
   depends on `_newline`/blank-line handling).
 
+### Grammar fix: `New Type(args)` constructor calls and `New T(n) {…}` array creation (`grammar.js`)
+
+Fixes both halves of the "Follow-up investigation: `New Type(...)` constructor calls" section below
+— they're one ambiguity seen from two sides, and neither could be fixed without the other.
+
+**Root cause.** `type`'s bare-`namespace_name` alternative ends in `optional($.array_rank_specifier)`
+(needed for legitimate array-type declarations like `Dim x As Foo()`), and `new_expression` reused
+that same general-purpose `type` rule, immediately followed by its own separate
+`optional($.argument_list)`. Both want the same `(`. On `New SqlConnection(connStr)` the parser
+committed to `array_rank_specifier` (comma-only body) and kept the `ERROR`-laden attempt; on
+`New Foo()` the comma-only body matched trivially, so it "succeeded" as `array_type` + rank with no
+`ERROR` at all. Separately, `new_expression`'s trailing clause was only
+`choice($.object_initializers, $.with_initializer)` with no `$.array_literal`, so array creation had
+nowhere to go and its `{1, 2, 3}` landed in `object_initializers`.
+
+**Fix — structurally exclusive rule shapes, not precedence/conflict heuristics.** Split
+`new_expression` into three alternatives that can't overlap, and gave it its own narrower type rule:
+- `_new_type: choice($.primitive_type, alias($._new_generic_type, $.generic_type), $.namespace_name)`
+  — deliberately *no* `array_rank_specifier` and *no* `array_type`, because after `New` a
+  parenthesised group is always arguments or array bounds, never a rank marker. Aliased to `$.type`
+  at the use site so the `type:` field keeps its existing node name in consumers' trees.
+- `New t [args] [With {…}]` — plain constructor call; `argument_list` now unambiguously owns the
+  parens.
+- `New t args {…}` — array creation; both the parens (bounds) and the trailing `array_literal` are
+  mandatory, so the bare `{…}`-with-no-`With` is the disambiguator, exactly as the VB.NET spec
+  implies. This is what makes `New Integer(2) {1, 2, 3}` distinguishable from a constructor call
+  with no semantic/type information.
+- `New t {…}` — the parens-less form, kept so the existing anonymous-type parse
+  (`New With { Key .x = 1 }`) still resolves to `object_initializers` unchanged.
+
+**Two dead ends on the way there, both worth recording:**
+- Copying `generic_type`'s `prec.left(3, …)` onto `_new_generic_type` (the obvious move, since
+  `generic_type` is the alternative that already handled `New List(Of Integer)()` correctly)
+  *generated cleanly but broke every plain constructor call*: with `New Foo` on the stack and `(`
+  ahead, the precedence made the parser always **shift** into `type_argument_list`, which then
+  demands `Of` and fails. The reduce-vs-shift choice there genuinely needs two tokens of lookahead
+  (`Of` or not), so it must stay a real GLR conflict — `prec` can only pick one branch statically,
+  and either static pick is wrong half the time. Dropping the `prec` and declaring
+  `[$._new_type, $._new_generic_type]` instead is what actually works.
+- The pre-existing `[$.new_expression]` / `[$.type, $.array_type]` conflict declarations were never
+  sufficient on their own (already noted in the investigation below, re-confirmed here). Declaring a
+  conflict only lets the parser *explore* both branches; it doesn't help when both branches are
+  viable expansions of the *same* rule shape. Making the shapes mutually exclusive is what removed
+  the ambiguity — the conflict declaration then only has to cover the genuine 2-token lookahead.
+
+Verified:
+- Both gap repros (`New SqlConnection(connStr)`, `New Integer(2) {1, 2, 3}`) — zero `ERROR`, and the
+  array case now yields `argument_list` + `array_literal` rather than a bogus constructor argument +
+  `object_initializers`. Moved out of `known_gaps.txt` into `statements.txt`, widened to cover
+  `New Exception("msg")`, `New Point(x, y)`, `New System.Text.StringBuilder(100)`,
+  `New StringBuilder()`, `New List(Of Integer)()`, `New Dictionary(Of String, Integer)(cmp)`,
+  `New Integer() {1, 2, 3}`, `New String(9) {}`, `New Integer(1, 2) {}`.
+- The existing "Multi-line `New With {}` object initializer" test now parses `New OrderViewModel()`
+  as `namespace_name` + `argument_list` instead of `array_type` + empty `array_rank_specifier` —
+  its pinned tree was pinning the *bug*, so it was re-pinned with `tree-sitter test -u`.
+- No regressions: `Dim x As Foo()`, `Dim m As Integer(,)`, `Dim g As List(Of Integer)`,
+  `Dim ga As List(Of Integer)()` all still parse as array/generic types; "Multi-line anonymous type
+  with `Key` properties" unchanged; full corpus suite green except the one unrelated remaining gap
+  (`ConsList(Of TypeSymbol).Empty`).
+- **Corpus-wide before/after over all 3807 `.vb` files in `autotriage`** (benchmark samples +
+  `dotnet/roslyn`): files containing an `ERROR`/`MISSING` node dropped 3277 → 3110 — **167 files
+  newly parse completely clean, zero newly broken**. Of the 291 files whose first-error position
+  moved, 290 moved *later* in the file (the `New` error was masking a later one). The single
+  outlier, `EmitTestStrongNameProvider.vb`, was checked by hand: its `New Foo(args) With {…}` now
+  parses fine and the reported error simply becomes the pre-existing, unrelated lambda-with-
+  `As <ReturnType>` gap a line further down, which recovers over a wider span.
+- Two errors surfaced by the smoke sweep were confirmed **pre-existing and out of scope** by
+  re-generating the parser from `HEAD:grammar.js` and re-parsing: `New List(Of String) From {"a"}`
+  (no `From` collection-initializer support anywhere in the grammar) and
+  `Dim arr2() As Integer = {1, 2, 3}` (`dim_statement` has no `array_rank_specifier` after the name,
+  unlike `variable_declarator`). Identical `ERROR` positions before and after.
+
 **What this doesn't cover:** VB's implicit continuation is broader than "inside brackets" — a break
 after a trailing operator/comma/`.` with *no* enclosing brackets at all (e.g. `Dim x = a +\n b`) is
 a different mechanism (needs "what was the last significant token," not just `valid_symbols`), and
@@ -542,10 +625,6 @@ Verified:
 - `vb-parser-breaks.md` #31 (`With` block member access) — confirmed a *different* root cause from
   the multi-line family (no grammar support for leading-dot implicit-target member access as a
   statement); not yet added as a corpus test or attempted.
-- Fix `New Type(...)` constructor calls being misparsed as `array_type` — see "Follow-up
-  investigation: `New Type(...)` constructor calls" above; now tracked as its own gap in
-  `known_gaps.txt`. Likely the highest real-world-impact gap remaining, given how fundamental
-  object construction is — worth prioritizing over the other two open items below.
 - Extend implicit line continuation beyond brackets — a break after a trailing operator/comma/`.`
   with *no* enclosing brackets (e.g. `Dim x = a +\n b`) isn't covered by the fix in this branch and
   would need a different mechanism ("what was the last significant token," not `valid_symbols`).

@@ -41,6 +41,7 @@ module.exports = grammar({
     [$.event_declaration],
     [$.if_statement],
     [$.type, $.array_type],
+    [$._new_type, $._new_generic_type],
     [$.if_statement, $.binary_expression],
     [$.empty_statement, $.if_statement],
     [$.namespace_name, $.attribute],
@@ -794,15 +795,39 @@ module.exports = grammar({
     //   optional($.argument_list),
     //   optional($.object_initializers)
     // ),
-    new_expression: $ => seq(
-      kw('New'),
-      field('type', $.type),
-      optional($.argument_list),
-      optional(choice(
-        $.object_initializers,
-        $.with_initializer
-      ))
+    // Three structurally-exclusive shapes, so the parens after the type are
+    // never ambiguous with a rank marker and the trailing `{...}` is never
+    // ambiguous between an array initializer and an object initializer:
+    //   New Foo(args) [With {...}]  — constructor call; `_new_type` has no
+    //                                 array_rank_specifier, so argument_list
+    //                                 unambiguously owns the parens.
+    //   New Integer(2) {1, 2, 3}    — array creation; the bare trailing
+    //                                 array_literal (no `With`) is the
+    //                                 disambiguator, and the parens are the
+    //                                 bounds, so both are mandatory here.
+    //   New With {...}              — parens-less form (anonymous types).
+    new_expression: $ => {
+      const type = field('type', alias($._new_type, $.type));
+      return choice(
+        seq(kw('New'), type, optional($.argument_list), optional($.with_initializer)),
+        seq(kw('New'), type, $.argument_list, $.array_literal),
+        seq(kw('New'), type, $.object_initializers)
+      );
+    },
+
+    // Type reference for `New`. Deliberately narrower than $.type: no
+    // array_rank_specifier and no $.array_type, because after `New` a
+    // parenthesised group is always arguments or array bounds, never a rank.
+    _new_type: $ => choice(
+      $.primitive_type,
+      alias($._new_generic_type, $.generic_type),
+      $.namespace_name
     ),
+    // No prec here: after `New Foo` with `(` ahead, the parser must be free to
+    // either shift into a type_argument_list (`New Foo(Of T)`) or reduce and
+    // let argument_list take the parens (`New Foo(args)`). Only `Of`, two
+    // tokens in, tells them apart — hence the conflict declared at the top.
+    _new_generic_type: $ => seq($.namespace_name, $.type_argument_list),
 
     with_initializer: $ => seq(
       kw('With'),

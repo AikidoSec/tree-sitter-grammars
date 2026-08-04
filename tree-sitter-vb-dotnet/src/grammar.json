@@ -6029,55 +6029,153 @@
       ]
     },
     "new_expression": {
-      "type": "SEQ",
+      "type": "CHOICE",
       "members": [
         {
-          "type": "TOKEN",
-          "content": {
-            "type": "PATTERN",
-            "value": "[nN][eE][wW]"
-          }
-        },
-        {
-          "type": "FIELD",
-          "name": "type",
-          "content": {
-            "type": "SYMBOL",
-            "name": "type"
-          }
-        },
-        {
-          "type": "CHOICE",
+          "type": "SEQ",
           "members": [
             {
-              "type": "SYMBOL",
-              "name": "argument_list"
+              "type": "TOKEN",
+              "content": {
+                "type": "PATTERN",
+                "value": "[nN][eE][wW]"
+              }
             },
             {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
-          "type": "CHOICE",
-          "members": [
+              "type": "FIELD",
+              "name": "type",
+              "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_new_type"
+                },
+                "named": true,
+                "value": "type"
+              }
+            },
             {
               "type": "CHOICE",
               "members": [
                 {
                   "type": "SYMBOL",
-                  "name": "object_initializers"
+                  "name": "argument_list"
                 },
                 {
-                  "type": "SYMBOL",
-                  "name": "with_initializer"
+                  "type": "BLANK"
                 }
               ]
             },
             {
-              "type": "BLANK"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "with_initializer"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
             }
           ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "TOKEN",
+              "content": {
+                "type": "PATTERN",
+                "value": "[nN][eE][wW]"
+              }
+            },
+            {
+              "type": "FIELD",
+              "name": "type",
+              "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_new_type"
+                },
+                "named": true,
+                "value": "type"
+              }
+            },
+            {
+              "type": "SYMBOL",
+              "name": "argument_list"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "array_literal"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "TOKEN",
+              "content": {
+                "type": "PATTERN",
+                "value": "[nN][eE][wW]"
+              }
+            },
+            {
+              "type": "FIELD",
+              "name": "type",
+              "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_new_type"
+                },
+                "named": true,
+                "value": "type"
+              }
+            },
+            {
+              "type": "SYMBOL",
+              "name": "object_initializers"
+            }
+          ]
+        }
+      ]
+    },
+    "_new_type": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "primitive_type"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_new_generic_type"
+          },
+          "named": true,
+          "value": "generic_type"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "namespace_name"
+        }
+      ]
+    },
+    "_new_generic_type": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "namespace_name"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "type_argument_list"
         }
       ]
     },
@@ -7267,6 +7365,10 @@
     [
       "type",
       "array_type"
+    ],
+    [
+      "_new_type",
+      "_new_generic_type"
     ],
     [
       "if_statement",
