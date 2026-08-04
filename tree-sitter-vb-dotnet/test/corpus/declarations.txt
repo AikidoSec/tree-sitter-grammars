@@ -1,0 +1,549 @@
+================================================================================
+Simple module with a sub
+================================================================================
+
+Module Program
+    Sub Main()
+        Console.WriteLine("Hello")
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (member_access
+                  (expression
+                    (identifier))
+                  (identifier))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (string_literal)))))))))))))
+
+================================================================================
+Function with parameters and return type
+================================================================================
+
+Module Program
+    Function Add(x As Integer, y As Integer) As Integer
+        Return x + y
+    End Function
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (type
+          (primitive_type))
+        (statement
+          (return_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (identifier))))))))))
+
+================================================================================
+Public class with field and methods
+================================================================================
+
+Public Class Calculator
+    Private _memory As Integer = 0
+
+    Public Function Multiply(a As Double, b As Double) As Double
+        Return a * b
+    End Function
+
+    Public Sub Reset()
+        _memory = 0
+    End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type)))
+          (expression
+            (literal
+              (integer_literal)))))
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (type
+          (primitive_type))
+        (statement
+          (return_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (identifier)))))))
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (literal
+                    (integer_literal)))))))))))
+
+================================================================================
+Interface declaration
+================================================================================
+
+Public Interface IShape
+    Function GetArea() As Double
+End Interface
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (interface_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (type
+          (primitive_type))))))
+
+================================================================================
+Structure declaration
+================================================================================
+
+Public Structure Point
+    Public X As Integer
+    Public Y As Integer
+End Structure
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (structure_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type)))))
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type))))))))
+
+================================================================================
+Auto-implemented property
+================================================================================
+
+Public Class Person
+    Public Property Name As String
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (type
+            (primitive_type)))))))
+
+================================================================================
+Property with Get and Set
+================================================================================
+
+Public Class Counter
+    Private _count As Integer
+
+    Public Property Count As Integer
+        Get
+            Return _count
+        End Get
+        Set(value As Integer)
+            _count = value
+        End Set
+    End Property
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type)))))
+      (blank_line)
+      (property_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (as_clause
+          (type
+            (primitive_type)))
+        (get_accessor
+          (statement
+            (return_statement
+              (expression
+                (identifier)))))
+        (set_accessor
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (type
+                  (primitive_type)))))
+          (statement
+            (call_statement
+              (expression
+                (binary_expression
+                  (expression
+                    (identifier))
+                  (expression
+                    (identifier)))))))))))
+
+================================================================================
+Nested class declaration
+================================================================================
+
+Public Class Outer
+	Protected Class Inner
+		Public Sub New()
+		End Sub
+	End Class
+
+	Protected Function DoWork() As Integer
+		Return 1
+	End Function
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (type_declaration
+        (class_block
+          (modifiers
+            (modifier))
+          (identifier)
+          (constructor_declaration
+            (modifiers
+              (modifier))
+            (parameter_list))))
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list)
+        (type
+          (primitive_type))
+        (statement
+          (return_statement
+            (expression
+              (literal
+                (integer_literal)))))))))
+
+================================================================================
+Generic class declaration with type parameter
+================================================================================
+
+Public Class Container(Of T)
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (type_parameters
+        (type_parameter
+          (identifier))))))
+
+================================================================================
+Generic method declaration and generic field/return type
+================================================================================
+
+Public Class Foo
+	Public Items As List(Of Integer)
+	Public Function GetItem(Of T)(key As String) As T
+		Return Nothing
+	End Function
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (generic_type
+                (namespace_name
+                  (identifier))
+                (type_argument_list
+                  (type
+                    (primitive_type))))))))
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (type_parameters
+          (type_parameter
+            (identifier)))
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (type
+          (namespace_name
+            (identifier)))
+        (statement
+          (return_statement
+            (expression
+              (literal))))))))
+
+================================================================================
+Class with Inherits and Implements on separate lines
+================================================================================
+
+Public Class Dog
+	Inherits Animal
+	Implements IBarker
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (inherits_clause
+        (type
+          (namespace_name
+            (identifier))))
+      (implements_clause
+        (type
+          (namespace_name
+            (identifier)))))))
+
+================================================================================
+Interface with Inherits on separate line
+================================================================================
+
+Public Interface IFoo
+	Inherits IBar
+	Sub DoWork()
+End Interface
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (interface_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (inherits_clause
+        (type
+          (namespace_name
+            (identifier))))
+      (method_declaration
+        (identifier)
+        (parameter_list)))))
+
+================================================================================
+Preprocessor #If/#Else/#End If wrapping alternate member declarations
+================================================================================
+
+Public Class Foo
+#If REFERENCE_STATE Then
+	Public Sub DoWork(x As Integer)
+	End Sub
+#Else
+	Public Sub DoWork(x As Integer, y As Integer)
+	End Sub
+#End If
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (preprocessor_directive)
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))))
+      (preprocessor_directive)
+      (blank_line)
+      (method_declaration
+        (modifiers
+          (modifier))
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))))
+      (preprocessor_directive)
+      (blank_line))))
+
+================================================================================
+Leading comment before Imports (common license-header shape)
+================================================================================
+
+' a comment
+Imports System
+Namespace Foo
+End Namespace
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (comment)
+  (blank_line)
+  (imports_statement
+    (namespace_name
+      (identifier)))
+  (namespace_block
+    (namespace_name
+      (identifier))))

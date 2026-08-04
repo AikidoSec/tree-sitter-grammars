@@ -1,0 +1,39 @@
+================================================================================
+[gap] generic type used as a value for static member access
+:skip
+================================================================================
+
+Module M
+	Sub Main()
+		Dim x = ConsList(Of TypeSymbol).Empty
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+; known grammar bug, accepted as-is — not a fix target. `member_access`'s
+; `object` field only accepts `expression`, which has no alternative for
+; "namespace_name + type_argument_list" the way `type` does, so a generic
+; type used as a value (e.g. accessing a static member on it, as above)
+; produces an ERROR on the `(Of TypeSymbol)` fragment. Two fix attempts
+; (adding generic_type to expression's choices; adding an optional
+; type_argument_list to member_access directly) both cascaded into new
+; grammar conflicts with element_access/unary_expression/binary_expression
+; — see progress.md's "Attempted and reverted" section for the full story.
+;
+; Confirmed the ERROR is fully self-contained and never cascades: in both
+; a standalone statement and the original real-world repro
+; (`New BasesBeingResolved(If(a, ConsList(Of T).Empty).Prepend(x), b)`),
+; every sibling statement, the enclosing function declaration, and every
+; *call* around the broken fragment — including `.Prepend(x)` chained
+; directly onto its result — still parse correctly. `Type(Of T).Member`
+; isn't a call at all (it's a static property/field access), so it was
+; never something autotriage's call-graph extraction would track anyway;
+; the only casualty is the type argument inside that one access, which
+; only matters for type inference — out of scope for autotriage.
+;
+; Kept here (marked :skip, not deleted) as a live repro and a marker that
+; this was investigated and knowingly deprioritized, not overlooked.
+; Skipped tests don't count toward pass/fail (see `tree-sitter test`
+; output: total excludes this one entirely) so CI stays green.
+(source_file)
