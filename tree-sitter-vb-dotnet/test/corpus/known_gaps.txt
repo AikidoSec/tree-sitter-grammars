@@ -11,3 +11,76 @@ End Module
 --------------------------------------------------------------------------------
 
 (source_file)
+
+================================================================================
+[gap] multi-line argument list without explicit line continuation
+================================================================================
+
+Module M
+	Sub Main()
+		Foo(
+			a,
+			b
+		)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+; known grammar gap: `_newline` (the statement terminator) is an
+; unconditional /\r?\n/ with no context awareness at all — VB 10+ implicit
+; line continuation (a line break after `(`, `,`, most operators is NOT a
+; statement terminator) has no grammar support whatsoever. Every newline
+; inside this argument list is treated as ending the enclosing statement,
+; producing ERROR on each line break. Almost certainly needs an external
+; C scanner tracking bracket/paren depth (this grammar has none today) —
+; the same category of problem as Python's INDENT/DEDENT scanner. Left
+; blank until fixed — this test is expected to fail (run
+; `tree-sitter test -u` once resolved).
+(source_file)
+
+================================================================================
+[gap] multi-line New With {} object initializer
+================================================================================
+
+Module M
+	Sub Main()
+		Dim vm = New OrderViewModel() With {
+			.OrderDate = o.OrderDate,
+			.Total = o.Total
+		}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+; same root cause as "multi-line argument list" above — newlines inside
+; `With { }` are statement terminators, not implicit continuations. Left
+; blank until fixed — this test is expected to fail (run
+; `tree-sitter test -u` once resolved).
+(source_file)
+
+================================================================================
+[gap] multi-line anonymous type with Key properties
+================================================================================
+
+Module M
+	Sub Main()
+		Dim result = New With {
+			Key .status = "ok",
+			Key .name = "x"
+		}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+; same root cause as "multi-line argument list" above. Note: `Key` itself
+; is not the issue — a single-line `New With { Key .status = "ok" }`
+; already parses with zero ERROR nodes (though silently wrong: `Key` is
+; misread as an identifier, `Key .status` as member_access(object: Key,
+; member: status), rather than a recognized `Key` modifier — a separate,
+; lower-priority bug since it produces no ERROR and doesn't corrupt any
+; calls). Left blank until fixed — this test is expected to fail (run
+; `tree-sitter test -u` once resolved).
+(source_file)
