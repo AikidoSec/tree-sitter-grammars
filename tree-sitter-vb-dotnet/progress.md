@@ -404,16 +404,47 @@ none of the documented gaps needed it, so it wasn't attempted.
 - **`Key` in an anonymous type initializer is silently mis-parsed**, even on a single line —
   `Key .status = "ok"` reads as `member_access(object: identifier "Key", member: "status")`, i.e.
   `Key` is swallowed as if it were a variable name, not recognized as the `Key` modifier at all.
-- **New finding while auto-generating the multi-line `New With {}` corpus test**: `New Type()` —
-  literal empty parens directly after a type name — is *always* misparsed as `array_type` with an
-  empty `array_rank_specifier`, not a parameterless constructor call, regardless of what follows
-  (confirmed on a single line too, unrelated to newlines). `type`'s `array_type` alternative and
-  `new_expression`'s separate `optional($.argument_list)` both start with `(`, and `array_type` wins
-  the ambiguity every time. `New SomeClass() With { ... }` is an extremely common real-world VB.NET
-  pattern, so this is likely worth its own fix pass.
-- None of `Key`/`With`-as-fake-typename/`Type()`-as-`array_type` produce `ERROR` nodes, so none
-  surface via cascade/miss-count analysis, and none are prioritized right now — noted for
-  completeness.
+- None of `Key`/`With`-as-fake-typename produce `ERROR` nodes, so neither surfaces via
+  cascade/miss-count analysis, and neither is prioritized right now — noted for completeness. (The
+  related `New Type(...)` constructor-call finding below is a different story — it's now scoped
+  and tracked as its own gap, not just a note.)
+
+### Follow-up investigation: `New Type(...)` constructor calls (`known_gaps.txt`)
+
+Found while auto-generating the multi-line `New With {}` corpus test: `New OrderViewModel()`
+parsed "successfully" (no `ERROR`) as `array_type` + empty `array_rank_specifier`, not a
+parameterless constructor call. Scoped this further before assuming it was a narrow, parens-only
+edge case — it's much broader:
+
+- **`New Type()` (no arguments)** — silently misparses as `array_type`, no `ERROR` at all.
+  Confirmed on `New StringBuilder()`, `New Random()`, `New Object()`, and the original
+  `New OrderViewModel()`. This is genuinely wrong (parameterless constructor calls are one of the
+  most common expressions in any codebase) but invisible to cascade/miss-count analysis.
+- **`New Type(args)` where `args` isn't purely commas** — a real `ERROR`. Confirmed on
+  `New SqlConnection(connStr)`, `New Exception("msg")`, `New Point(x, y)` — all extremely common,
+  everyday patterns (exception construction, ADO.NET connections, simple value objects). The parser
+  commits to matching the parenthesized content as `array_rank_specifier` (which only accepts
+  commas — a rank/dimension marker like `Foo()`/`Foo(,)`, never an expression), and when that fails
+  it keeps the `ERROR`-laden attempt rather than falling back to leaving the parens for
+  `new_expression`'s own `argument_list`.
+- **Root cause**: `type`'s bare-`namespace_name` alternative has an optional trailing
+  `array_rank_specifier` (needed for legitimate array-type declarations like `Dim x As Foo()`), and
+  it's reused as-is for `new_expression`'s `field('type', $.type)`, immediately followed by
+  `new_expression`'s own separate `optional($.argument_list)`. Both want the same `(`.
+- **Why this isn't a quick fix**: `[$.new_expression]` and `[$.type, $.array_type]` are *already*
+  declared conflicts — the grammar already acknowledges this ambiguity and still resolves to the
+  wrong branch. Tried giving the bare-`namespace_name` alternative the same `prec.left(3, ...)`
+  `generic_type` has (since `generic_type` *does* correctly defer to `argument_list` in the
+  equivalent `New List(Of Integer)()` case) — that just moved the conflict to `type` vs
+  `generic_type` instead of fixing this one. Likely needs a dedicated, narrower type-reference rule
+  for `new_expression`'s `type` field (excluding the array-rank alternative) rather than reusing the
+  general-purpose `type` rule, or a real GLR fix distinguishing "this parenthesized content is pure
+  commas" from "it isn't" before committing.
+- Added as `[gap] constructor call with arguments misparsed as array type` in `known_gaps.txt`
+  (using `New SqlConnection(connStr)` — unambiguous intent, no `With` clause needed to trigger it).
+  Likely the single highest real-world blast radius of any gap found in this branch, including the
+  ones already fixed — object construction via `New Type(...)` is about as fundamental as VB.NET
+  syntax gets.
 
 ## Verification
 
@@ -491,10 +522,10 @@ Verified:
 - `vb-parser-breaks.md` #31 (`With` block member access) — confirmed a *different* root cause from
   the multi-line family (no grammar support for leading-dot implicit-target member access as a
   statement); not yet added as a corpus test or attempted.
-- Fix `New Type()` being misparsed as `array_type` instead of a parameterless constructor call —
-  found while auto-generating the multi-line `New With {}` corpus test, confirmed pre-existing and
-  unrelated to newlines (reproduces on a single line too). `New SomeClass() With { ... }` is an
-  extremely common real-world pattern, so likely worth prioritizing.
+- Fix `New Type(...)` constructor calls being misparsed as `array_type` — see "Follow-up
+  investigation: `New Type(...)` constructor calls" above; now tracked as its own gap in
+  `known_gaps.txt`. Likely the highest real-world-impact gap remaining, given how fundamental
+  object construction is — worth prioritizing over the other two open items below.
 - Extend implicit line continuation beyond brackets — a break after a trailing operator/comma/`.`
   with *no* enclosing brackets (e.g. `Dim x = a +\n b`) isn't covered by the fix in this branch and
   would need a different mechanism ("what was the last significant token," not `valid_symbols`).
