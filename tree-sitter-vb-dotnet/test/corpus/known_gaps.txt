@@ -11,3 +11,42 @@ End Module
 --------------------------------------------------------------------------------
 
 (source_file)
+
+================================================================================
+[gap] constructor call with arguments misparsed as array type
+================================================================================
+
+Module M
+	Sub Main()
+		Dim conn = New SqlConnection(connStr)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+; known grammar bug: `type`'s bare-namespace_name alternative has an
+; optional trailing array_rank_specifier (needed for legitimate array-type
+; declarations like `Dim x As Foo()`), and new_expression's own separate
+; argument_list comes right after `field('type', $.type)`. Given
+; `New SqlConnection(connStr)`, the parser always commits to matching
+; `(connStr)` as `array_rank_specifier` (which only accepts commas, e.g.
+; `Foo()`/`Foo(,)` for rank — never arbitrary expressions) instead of
+; leaving it for argument_list, producing ERROR on the argument content.
+; Confirmed NOT limited to parameterless constructors: any New Type(args)
+; where args isn't purely commas breaks the same way (e.g. also
+; `New Exception("msg")`); a *parameterless* `New Foo()` with generics
+; absent silently misparses as `array_type` with no ERROR at all (see
+; "Multi-line New With {} object initializer" in statements.txt, where
+; `New OrderViewModel()` parses "successfully" as array_type + rank `()`
+; rather than a constructor call — same root cause, no ERROR because
+; array_rank_specifier's comma-only body matches trivially on empty
+; parens). `[$.new_expression]` and `[$.type, $.array_type]` are already
+; declared conflicts, and the parser still resolves to the wrong branch —
+; not a quick precedence tweak (tried giving the namespace_name
+; alternative the same prec.left(3, ...) generic_type has; it just shifts
+; the conflict to `type` vs `generic_type` instead of fixing this one).
+; Likely needs a dedicated, narrower type-reference rule for
+; new_expression's `type` field instead of reusing the general-purpose
+; `type` rule. Left blank until fixed — this test is expected to fail
+; (run `tree-sitter test -u` once resolved).
+(source_file)
