@@ -10,7 +10,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
    `autotriage`'s `src/langs/vb/vb-parser-breaks.md` and `src/langs/Vb.test.ts`) into
    `test/corpus/known_gaps.txt` as intentionally-failing tests, so each gap has a minimal repro
    pinned in the grammar repo itself.
-3. Fixes nine of those gaps:
+3. Fixes twelve of those gaps:
    - identifiers that start with a keyword (`DoWork`, `SelectAll`, ...) were being split into
      `ERROR` + orphan identifier instead of parsing as one identifier.
    - a `Class`/`Structure`/`Interface`/`Enum` nested inside another type had no valid grammar
@@ -40,21 +40,26 @@ none of its known parsing gaps were tracked as regression tests. This PR:
      `imports_statement`; already documented as `vb-parser-breaks.md` #34 ("cosmetic only, N/A") but
      that assessment undersold it badly, since a comment (an invisible lexer "extra") leaves its
      terminator stranded there too, not just a literal blank first line.
+   - **VB's implicit line continuation** (`vb-parser-breaks.md` #23/#24/#25) — a line break after
+     `(`/`,`/most operators inside an unclosed grouping (multi-line argument lists, multi-line
+     `New With {}` object initializers) was misparsed as a statement terminator. This is the first
+     fix in this branch needing an external scanner (`src/scanner.c`, new — this grammar had none
+     before) rather than a pure `grammar.js` change; see its own section below for how it works.
 
 ## What changed
 
 ### Corpus tests (`test/corpus/`)
 
-- `declarations.txt` (14 tests), `statements.txt` (11 tests, incl. the `Do`-prefix fix, the
-  generic-call fix, the 2-arg `If` fix, the `Rem`-prefix fix, and a baseline `REM`-comment test) —
-  baseline coverage: modules, classes, interfaces, structures, properties (auto + get/set),
-  if/select/for/while/try, nested classes, generic class/method declarations, generic field/return
-  types, generic method calls, 2-arg `If`, separate-line `Inherits`/`Implements`, member-level
-  preprocessor directives, comments, a leading comment before `Imports`. All pass; this is what
-  proves the corpus-test plumbing works
-  end to end (CI already runs `tree-sitter test` per grammar folder via
+- `declarations.txt` (14 tests), `statements.txt` (14 tests, incl. the `Do`-prefix fix, the
+  generic-call fix, the 2-arg `If` fix, the `Rem`-prefix fix, a baseline `REM`-comment test, and the
+  3 multi-line continuation fixes) — baseline coverage: modules, classes, interfaces, structures,
+  properties (auto + get/set), if/select/for/while/try, nested classes, generic class/method
+  declarations, generic field/return types, generic method calls, 2-arg `If`, separate-line
+  `Inherits`/`Implements`, member-level preprocessor directives, comments, a leading comment before
+  `Imports`, multi-line argument lists and object initializers. All pass; this is what proves the
+  corpus-test plumbing works end to end (CI already runs `tree-sitter test` per grammar folder via
   `.github/workflows/test.yml`).
-- `known_gaps.txt` (4 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
+- `known_gaps.txt` (1 test) — known bug, pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
   out of this file into `declarations.txt`/`statements.txt`.
@@ -65,13 +70,6 @@ none of its known parsing gaps were tracked as regression tests. This PR:
     Property`, and the 2-arg `If`) is now fixed; only this one remains, so it's isolated into its
     own minimal test. Tried fixing it (see "Attempted and reverted" below) — genuinely harder than
     the other gaps, not a quick follow-up.
-  - **Multi-line argument list without explicit line continuation**, **multi-line `New With {}`
-    object initializer**, and **multi-line anonymous type with `Key` properties** — three separate
-    corpus tests for `vb-parser-breaks.md` #23/#24/#25, all confirmed to share the identical root
-    cause: `_newline` is an unconditional `/\r?\n/` with no context awareness, so any line break
-    after `(`/`,`/most operators (VB 10+ implicit continuation) is misread as ending the enclosing
-    statement. Not yet attempted — see "Investigation: multi-line continuation family" below for
-    what's needed and what else was found while scoping this.
 
 ### Grammar fix: keyword-prefixed identifiers (`grammar.js`)
 
@@ -324,26 +322,77 @@ Verified:
   `ERROR`.
 - No regressions: full corpus suite unaffected elsewhere.
 
-### Investigation: multi-line continuation family (`vb-parser-breaks.md` #23-26, #31)
+### Grammar fix: implicit line continuation inside brackets (`grammar.js`, `src/scanner.c` — new)
 
-Re-checked `vb-parser-breaks.md` against the current grammar and added corpus tests for the
-multi-line family (not fixed yet — this branch adds the tests, fixing is the next step):
+Re-checked `vb-parser-breaks.md`'s multi-line family (#23/#24/#25) against the current grammar,
+added corpus tests, and — unlike every other gap in this branch — actually needed an **external
+scanner** (`src/scanner.c`, new file; this grammar had none before) rather than a pure `grammar.js`
+change. This is the first fix in this branch that isn't just a rule tweak.
 
-- **#23 (multi-line argument list), #24 (multi-line `New With {}`), #25 (multi-line anonymous type
-  with `Key`)** — all three still reproduce, all three confirmed to share the identical root cause:
-  `_newline` is an unconditional `/\r?\n/` with zero context awareness (no bracket/paren-depth
-  tracking, no "am I inside an unclosed grouping" state at all). Real VB.NET's implicit line
-  continuation (break after `(`, `,`, most operators, no trailing `_` needed) has no grammar support
-  whatsoever — every line break inside an argument list, an object-initializer body, etc. is
-  misparsed as ending the enclosing statement. This is a fundamentally different tier of problem
-  from every fix so far in this branch — those were all pure `grammar.js` rule changes; this needs
-  context-sensitive lexing, almost certainly an external C scanner tracking bracket/paren depth
-  (this grammar has none today) — the same category of problem as Python's INDENT/DEDENT scanner.
-  Isolated minimal repros for all three now live in `known_gaps.txt`.
+**Investigation first.** Read `tree-sitter-python`'s and `tree-sitter-ruby`'s external scanners
+(both suggested as the closest precedent) to scope the work before touching code:
+- Ruby's scanner is mostly irrelevant here — it's built for heredocs/string-interpolation/
+  percent-literals, a different problem than bracket-depth continuation.
+- Python's scanner does *not* maintain a manual bracket-depth counter for this. It declares the
+  closing brackets (`')'`, `']'`, `'}'` — the *same* literal tokens already used everywhere else in
+  the grammar) as `externals`, purely so the scanner can read `valid_symbols[CLOSE_PAREN]` etc. —
+  tree-sitter's own signal for "the parser's current state would accept this token next," which
+  already reflects nesting depth via the LR state stack. The scanner never matches those brackets
+  itself (always declines, letting the normal lexer handle the literal); declaring them external is
+  only to make them visible in `valid_symbols`.
+- Neither project unit-tests the scanner C code separately — both have only `test/corpus` (the same
+  mechanism used throughout this repo) plus `test/highlight`/`test/tags` for query tests unrelated
+  to parsing.
+
+**First attempt (wrong) and why:** tried mirroring the "compute `within_brackets`, then skip
+newline characters in a loop and `return false`" shape literally. Empirically (verified with a call
+counter + logged position in the scanner) this doesn't work: returning `false` from
+`scan()` fully rolls back *all* consumption from that call, skip-marked or not — the next
+invocation starts at the exact same position with the exact same lookahead. A scanner cannot
+"silently swallow trivia and decline" this way; declining always means declining from the original
+position.
+
+**What actually makes Python's approach work:** its `extras` array includes a bare whitespace regex
+that explicitly matches `\r?\n` — newlines are *unconditionally* extras, absorbable anywhere,
+completely independently of the scanner. The scanner's only job is to *win the race*: when
+`valid_symbols[NEWLINE]` is true (the grammar structurally expects a real terminator there), the
+external scanner gets first refusal and explicitly produces it, which takes priority over treating
+the character as a mere extra. When `NEWLINE` isn't a valid symbol (already false inside argument
+lists, object initializers, etc., since none of those rules reference `_terminator` at all), the
+scanner declines and the plain extras-based absorption handles it — no bracket-depth tracking
+needed in the scanner whatsoever, and (for VB's specific need — continuation, not
+indentation/heredocs) no `CLOSE_PAREN`/`CLOSE_BRACE` externals needed either, unlike Python's.
+
+**Fix:**
+- `grammar.js`: made `$._newline` external (moved out of `rules`, into `externals`); added a bare
+  `/\r?\n/` to `extras`.
+- `src/scanner.c` (new, ~40 lines of real logic): `scan()` checks `valid_symbols[NEWLINE]`; if
+  false, declines immediately. If true and the lookahead is `\r?\n`, consumes it and returns the
+  `NEWLINE` token. That's the entire mechanism.
+- No build-file changes needed — `binding.gyp`/`CMakeLists.txt` already conditionally compile
+  `src/scanner.c` if present (standard tree-sitter boilerplate, already there for the sibling
+  `tree-sitter-kotlin`/`tree-sitter-dart` grammars in this monorepo).
+
+Verified:
+- All three corpus repros (multi-line argument list, multi-line `New With {}`, multi-line
+  anonymous type with `Key`) — zero `ERROR`, moved from `known_gaps.txt` into `statements.txt`.
+- A synthetic Roslyn-shaped multi-line method signature + multi-line `With {}` object initializer
+  together in one file — zero `ERROR`.
+- Multiple blank lines *outside* brackets still produce real `blank_line` nodes (no regression on
+  the existing "where can this appear" fixes from earlier in this branch).
+- CRLF line endings inside a multi-line bracketed construct — zero `ERROR`.
+- Full corpus suite unaffected elsewhere (including the `Imports`-leading-comment fix, which also
+  depends on `_newline`/blank-line handling).
+
+**What this doesn't cover:** VB's implicit continuation is broader than "inside brackets" — a break
+after a trailing operator/comma/`.` with *no* enclosing brackets at all (e.g. `Dim x = a +\n b`) is
+a different mechanism (needs "what was the last significant token," not just `valid_symbols`), and
+none of the documented gaps needed it, so it wasn't attempted.
+
+**Other findings from this investigation, not part of this fix:**
 - **#26 (`New With { var }` key inference) is stale** — `New With { returnUrl, model.RememberMe }`
   already parses with zero `ERROR` (confirmed `object_initializer` already has a bare-`expression`
-  alternative alongside the `.Prop = val` one). Not adding a corpus test for something that already
-  works; the doc needs a refresh here.
+  alternative alongside the `.Prop = val` one).
 - **#31 (`With` block member access) is a *different* root cause**, not part of the multi-line
   family despite superficially involving newlines: `with_statement`'s body is `repeat($.statement)`,
   and there's no grammar support anywhere for a leading-dot implicit-target member access
@@ -351,20 +400,26 @@ multi-line family (not fixed yet — this branch adds the tests, fixing is the n
   `member_access`'s `object` field is required, not optional. `object_initializer` *does* have its
   own dedicated leading-dot rule (`seq('.', $.identifier, '=', $.expression)`, `grammar.js:814`),
   which is why `New Foo() With { .Prop = val }` works fine but a `With` block's body doesn't; that
-  rule isn't reachable from `statement`. Not added to `known_gaps.txt` yet since it's a separate fix
-  from the multi-line family — flag if worth its own corpus test and fix pass.
-- **Bonus finding, not `ERROR`-producing so not part of this batch**: `Key` in an anonymous type
-  initializer is silently mis-parsed even on a single line — `Key .status = "ok"` reads as
-  `member_access(object: identifier "Key", member: "status")`, i.e. `Key` is swallowed as if it were
-  a variable name, not recognized as the `Key` modifier at all. No `ERROR` node, so it wouldn't
-  surface via cascade/miss-count analysis, and `Key`-marked anonymous-type equality semantics aren't
-  something autotriage's call-graph extraction cares about — noted for completeness, not prioritized.
+  rule isn't reachable from `statement`. Not added to `known_gaps.txt` yet.
+- **`Key` in an anonymous type initializer is silently mis-parsed**, even on a single line —
+  `Key .status = "ok"` reads as `member_access(object: identifier "Key", member: "status")`, i.e.
+  `Key` is swallowed as if it were a variable name, not recognized as the `Key` modifier at all.
+- **New finding while auto-generating the multi-line `New With {}` corpus test**: `New Type()` —
+  literal empty parens directly after a type name — is *always* misparsed as `array_type` with an
+  empty `array_rank_specifier`, not a parameterless constructor call, regardless of what follows
+  (confirmed on a single line too, unrelated to newlines). `type`'s `array_type` alternative and
+  `new_expression`'s separate `optional($.argument_list)` both start with `(`, and `array_type` wins
+  the ambiguity every time. `New SomeClass() With { ... }` is an extremely common real-world VB.NET
+  pattern, so this is likely worth its own fix pass.
+- None of `Key`/`With`-as-fake-typename/`Type()`-as-`array_type` produce `ERROR` nodes, so none
+  surface via cascade/miss-count analysis, and none are prioritized right now — noted for
+  completeness.
 
 ## Verification
 
 ```
 tree-sitter generate --abi 14   # clean, no warnings
-tree-sitter test                # 24 passing, 4 known gaps (intentionally failing)
+tree-sitter test                # 27 passing, 1 known gap (intentionally failing)
 ```
 
 ## Also fixed in this branch (housekeeping, no behavior change)
@@ -433,19 +488,21 @@ Verified:
 - Fix generic type as a value expression (`ConsList(Of TypeSymbol).Empty`) — see "Attempted and
   reverted" above for what doesn't work; needs a structurally different approach than the other
   fixes in this branch.
-- `vb-parser-breaks.md` #23-25 (multi-line implicit line continuation) — corpus tests added this
-  session (see "Investigation: multi-line continuation family" above), not fixed yet. Needs an
-  external C scanner tracking bracket/paren depth (this grammar has none today) — a fundamentally
-  bigger undertaking than everything fixed so far, but likely the highest-leverage fix available:
-  every real-world VB.NET file with a multi-line call/initializer hits this, and unlike the
-  `Imports`-header fix, this one likely causes total (not partial) cascades within the affected
-  expressions.
 - `vb-parser-breaks.md` #31 (`With` block member access) — confirmed a *different* root cause from
   the multi-line family (no grammar support for leading-dot implicit-target member access as a
   statement); not yet added as a corpus test or attempted.
-- `vb-parser-breaks.md` #26 is stale (already fixed/never broken) and `Key` anonymous-type modifier
-  is silently mis-parsed (no `ERROR`, low priority) — doc needs a refresh reflecting both, plus
-  every other break this branch fixed that the doc still lists as broken (#1, #5-9, #12, #17, #20,
+- Fix `New Type()` being misparsed as `array_type` instead of a parameterless constructor call —
+  found while auto-generating the multi-line `New With {}` corpus test, confirmed pre-existing and
+  unrelated to newlines (reproduces on a single line too). `New SomeClass() With { ... }` is an
+  extremely common real-world pattern, so likely worth prioritizing.
+- Extend implicit line continuation beyond brackets — a break after a trailing operator/comma/`.`
+  with *no* enclosing brackets (e.g. `Dim x = a +\n b`) isn't covered by the fix in this branch and
+  would need a different mechanism ("what was the last significant token," not `valid_symbols`).
+  Not attempted since no documented gap needed it.
+- `vb-parser-breaks.md` #26 is stale (already fixed/never broken), and `Key` anonymous-type
+  modifier plus `With` (in anonymous-type `New With { ... }`) are both silently mis-parsed as plain
+  identifiers (no `ERROR`, low priority) — doc needs a refresh reflecting all of this, plus every
+  other break this branch fixed that the doc still lists as broken (#1, #5-9, #12, #17, #20, #23-25,
   #34, ...).
 
 ## Benchmark results (re-run against `dotnet/roslyn` after this branch's fixes)
