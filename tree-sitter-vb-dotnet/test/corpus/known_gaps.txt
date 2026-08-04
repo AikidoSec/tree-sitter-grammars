@@ -50,3 +50,34 @@ End Module
 ; `type` rule. Left blank until fixed — this test is expected to fail
 ; (run `tree-sitter test -u` once resolved).
 (source_file)
+
+================================================================================
+[gap] array creation via New with a size and initializer
+================================================================================
+
+Module M
+	Sub Main()
+		Dim arr = New Integer(2) {1, 2, 3}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+; the other side of the "constructor call misparsed as array type" gap
+; above: genuine VB.NET array-creation-via-New (`New ElementType(bound)
+; {initializer}` — the trailing array literal, even empty `{}`, is what
+; syntactically signals "this is array creation", not a constructor call)
+; has no grammar support at all today. No ERROR node, but silently wrong:
+; `(2)` gets swallowed as a bogus constructor argument to `Integer`
+; (which has no constructor taking an Integer), and `{1, 2, 3}` gets
+; misread as `object_initializers` (the `New Foo() With { .Prop = val }`
+; path) rather than an `array_literal`. new_expression's trailing clause
+; is currently only `choice($.object_initializers, $.with_initializer)`
+; — both require `With` — there's no `$.array_literal` alternative at
+; all, even though `array_literal` already exists as a rule
+; (`'{' optional(commaSep($.expression)) '}'`, used elsewhere). Fixing
+; this and the sibling gap together should use the trailing-`{}`-without-
+; `With` as the actual disambiguator between array creation and a plain
+; constructor call. Left blank until fixed — this test is expected to
+; fail (run `tree-sitter test -u` once resolved).
+(source_file)
