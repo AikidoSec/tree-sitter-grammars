@@ -11,9 +11,21 @@
 module.exports = grammar({
   name: 'vb_dotnet',
 
+  // _newline is external so the scanner can check valid_symbols[NEWLINE]
+  // and only produce a real terminator when the grammar actually expects
+  // one there (which is already false inside argument lists, object
+  // initializers, etc. — none of those rules reference _terminator).
+  // When it's not expected, the scanner declines and the bare `\r?\n` in
+  // extras below silently absorbs it instead — this is what makes VB's
+  // implicit line continuation inside brackets work, with no bracket
+  // tracking needed at all.
+  externals: $ => [
+    $._newline,
+  ],
 
   extras: $ => [
     $.comment,
+    /\r?\n/,                 // silently absorbed wherever a real terminator isn't grammatically expected
     /[ \t\f\u00A0]+/,        // whitespace except newlines
     $._line_continuation    
   ],
@@ -947,8 +959,6 @@ module.exports = grammar({
       seq(kw('REM'), optional(seq(/[ \t]/, /[^\r\n]*/)))
     )),
 
-    // Line break (statement terminator)
-    _newline: $ => /\r?\n/,
 
     _line_continuation: $ => token(seq('_', /[ \t]*/, /\r?\n/)),
 

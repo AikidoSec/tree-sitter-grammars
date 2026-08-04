@@ -436,3 +436,143 @@ End Module
         (comment)
         (statement
           (empty_statement))))))
+
+================================================================================
+Multi-line argument list without explicit line continuation
+================================================================================
+
+Module M
+	Sub Main()
+		Foo(
+			a,
+			b
+		)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier)))
+                  (argument
+                    (expression
+                      (identifier))))))))))))
+
+================================================================================
+Multi-line New With {} object initializer
+================================================================================
+
+Module M
+	Sub Main()
+		Dim vm = New OrderViewModel() With {
+			.OrderDate = o.OrderDate,
+			.Total = o.Total
+		}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (array_type
+                    (namespace_name
+                      (identifier))
+                    (array_rank_specifier)))
+                (with_initializer
+                  (member_initializer
+                    (identifier)
+                    (expression
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))))
+                  (member_initializer
+                    (identifier)
+                    (expression
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier)))))))))))))
+
+================================================================================
+Multi-line anonymous type with Key properties
+================================================================================
+
+Module M
+	Sub Main()
+		Dim result = New With {
+			Key .status = "ok",
+			Key .name = "x"
+		}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (object_initializers
+                  (object_initializer
+                    (expression
+                      (binary_expression
+                        (expression
+                          (member_access
+                            (expression
+                              (identifier))
+                            (identifier)))
+                        (expression
+                          (literal
+                            (string_literal))))))
+                  (object_initializer
+                    (expression
+                      (binary_expression
+                        (expression
+                          (member_access
+                            (expression
+                              (identifier))
+                            (identifier)))
+                        (expression
+                          (literal
+                            (string_literal)))))))))))))))
