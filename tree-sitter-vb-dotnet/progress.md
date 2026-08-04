@@ -59,7 +59,7 @@ none of its known parsing gaps were tracked as regression tests. This PR:
   `Imports`, multi-line argument lists and object initializers. All pass; this is what proves the
   corpus-test plumbing works end to end (CI already runs `tree-sitter test` per grammar folder via
   `.github/workflows/test.yml`).
-- `known_gaps.txt` (1 test) — known bug, pinned with `(source_file)` as a deliberately-wrong
+- `known_gaps.txt` (3 tests) — known bugs, each pinned with `(source_file)` as a deliberately-wrong
   placeholder expected tree, so the test fails until the grammar is fixed. Once fixed, regenerate
   the expected tree with `tree-sitter test -u` and (if it's a small/synthetic repro) move the test
   out of this file into `declarations.txt`/`statements.txt`.
@@ -70,6 +70,11 @@ none of its known parsing gaps were tracked as regression tests. This PR:
     Property`, and the 2-arg `If`) is now fixed; only this one remains, so it's isolated into its
     own minimal test. Tried fixing it (see "Attempted and reverted" below) — genuinely harder than
     the other gaps, not a quick follow-up.
+  - **Constructor call with arguments misparsed as array type** and **array creation via `New`
+    with a size and initializer** — two paired gaps, opposite sides of the same ambiguity
+    (VB.NET reuses parens for both array-rank markers and call arguments). See "Follow-up
+    investigation: `New Type(...)` constructor calls" below for the full writeup — likely the
+    highest real-world blast radius of anything in this branch, fixed or not.
 
 ### Grammar fix: keyword-prefixed identifiers (`grammar.js`)
 
@@ -445,6 +450,21 @@ edge case — it's much broader:
   Likely the single highest real-world blast radius of any gap found in this branch, including the
   ones already fixed — object construction via `New Type(...)` is about as fundamental as VB.NET
   syntax gets.
+- **The other side of the same coin**: genuine VB.NET array-creation-via-`New` (`New ElementType
+  (bound) {initializer}` — a trailing array literal, even empty `{}`, is what syntactically signals
+  "this is array creation", not a constructor call — no semantic/type info needed) has *no* grammar
+  support at all today, confirmed unrelated to Python/Ruby (checked both — neither has this
+  ambiguity in the first place, since neither overloads parens for both array-rank markers and call
+  arguments the way VB.NET does; that's a BASIC-ism specific to VB). `new_expression`'s trailing
+  clause is only `choice($.object_initializers, $.with_initializer)` (both require `With`) — no
+  `$.array_literal` alternative, even though `array_literal` already exists as a rule. Given
+  `New Integer(2) {1, 2, 3}`: no `ERROR`, but silently wrong — `(2)` gets swallowed as a bogus
+  constructor argument to `Integer` (which has no such constructor), and `{1, 2, 3}` gets misread
+  as `object_initializers` instead of an `array_literal`. Added as
+  `[gap] array creation via New with a size and initializer` in `known_gaps.txt`, right next to the
+  constructor-call gap — fixing both together should use "is there a bare trailing `{}` with no
+  preceding `With`" as the real disambiguator between the two meanings, rather than resolving the
+  ambiguity via conflicts/precedence.
 
 ## Verification
 
