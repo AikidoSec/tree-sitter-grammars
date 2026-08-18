@@ -26,9 +26,9 @@ jobs:
           - macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           cache: npm
           cache-dependency-path: ${{ inputs.folder }}/package-lock.json
@@ -54,7 +54,7 @@ jobs:
       - name: Test Node bindings
         run: node --test bindings/node/*_test.js
       - name: Upload binaries
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           path: ${{ inputs.folder }}/prebuilds/**
           name: prebuilds-${{ inputs.folder }}-${{ runner.os }}
@@ -69,15 +69,15 @@ jobs:
         working-directory: ${{ inputs.folder }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           cache: npm
           cache-dependency-path: ${{ inputs.folder }}/package-lock.json
           node-version: ${{vars.NODE_VERSION || '22'}}
       - name: Download binaries
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: ${{ inputs.folder }}/prebuilds
           pattern: prebuilds-${{ inputs.folder }}-*
@@ -87,7 +87,7 @@ jobs:
       - name: Create package tarball
         run: npm pack
       - name: Upload package tarball
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           path: ${{ inputs.folder }}/*.tgz
           name: package-tarball-${{ inputs.folder }}
