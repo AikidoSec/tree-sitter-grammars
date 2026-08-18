@@ -7,8 +7,8 @@ on:
   pull_request:
 
 jobs:
-  package:
-    name: Package (${{ matrix.folder }})
+  grammar:
+    name: ${{ matrix.folder }}
     strategy:
       matrix:
         folder:

@@ -13,7 +13,7 @@ on:
 
 jobs:
   build_node:
-    name: Build NodeJS binaries (${{ inputs.folder }}, ${{ matrix.os }})
+    name: Build NodeJS binaries (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -61,7 +61,7 @@ jobs:
           retention-days: 2
 
   package:
-    name: Package tarball npm (${{ inputs.folder }})
+    name: Package tarball npm
     needs: [build_node]
     runs-on: ubuntu-latest
     defaults:
