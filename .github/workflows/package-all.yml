@@ -4,6 +4,7 @@ name: Package all grammars
 # itself) against every known grammar, not just the one being tagged.
 on:
   workflow_dispatch:
+  pull_request:
 
 jobs:
   package:
