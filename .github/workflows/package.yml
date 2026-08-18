@@ -1,29 +1,25 @@
 name: Prebuild and package tarball (npm)
 
+# Reusable workflow: builds NodeJS prebuilds and packages an npm tarball for
+# a single grammar folder. Called by release.yml (one folder, from a tag)
+# and package-all.yml (every known folder, via matrix).
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
+  workflow_call:
     inputs:
       folder:
-        description: "Single grammar folder to build (leave empty to build all)"
+        description: "Grammar folder to build and package (e.g. tree-sitter-kotlin)"
         type: string
-        required: false
+        required: true
 
 jobs:
   build_node:
-    name: Build NodeJS binaries (${{ matrix.folder }}, ${{ matrix.os }})
-    # Build a single folder when dispatched with `folder`, otherwise build all
-    # (release, or dispatch left empty).
-    if: inputs.folder == '' || matrix.folder == inputs.folder
+    name: Build NodeJS binaries (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: ${{ matrix.folder }}
+        working-directory: ${{ inputs.folder }}
     strategy:
       matrix:
-        folder:
-          - tree-sitter-kotlin
         os:
           - ubuntu-latest
           - windows-2022
@@ -35,7 +31,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           cache: npm
-          cache-dependency-path: ${{ matrix.folder }}/package-lock.json
+          cache-dependency-path: ${{ inputs.folder }}/package-lock.json
           node-version: ${{vars.NODE_VERSION || '22'}}
       - name: Install dependencies
         # ignore preinstall script, so node-gyp-build is not trigerred
@@ -60,22 +56,17 @@ jobs:
       - name: Upload binaries
         uses: actions/upload-artifact@v7
         with:
-          path: ${{ matrix.folder }}/prebuilds/**
-          name: prebuilds-${{ matrix.folder }}-${{ runner.os }}
+          path: ${{ inputs.folder }}/prebuilds/**
+          name: prebuilds-${{ inputs.folder }}-${{ runner.os }}
           retention-days: 2
 
   package:
-    name: Package tarball npm (${{ matrix.folder }})
-    if: inputs.folder == '' || matrix.folder == inputs.folder
+    name: Package tarball npm
     needs: [build_node]
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ matrix.folder }}
-    strategy:
-      matrix:
-        folder:
-          - tree-sitter-kotlin
+        working-directory: ${{ inputs.folder }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -83,13 +74,13 @@ jobs:
         uses: actions/setup-node@v6
         with:
           cache: npm
-          cache-dependency-path: ${{ matrix.folder }}/package-lock.json
+          cache-dependency-path: ${{ inputs.folder }}/package-lock.json
           node-version: ${{vars.NODE_VERSION || '22'}}
       - name: Download binaries
         uses: actions/download-artifact@v8
         with:
-          path: ${{ matrix.folder }}/prebuilds
-          pattern: prebuilds-${{ matrix.folder }}-*
+          path: ${{ inputs.folder }}/prebuilds
+          pattern: prebuilds-${{ inputs.folder }}-*
           merge-multiple: true
       - name: Check binaries
         run: tree prebuilds
@@ -98,6 +89,6 @@ jobs:
       - name: Upload package tarball
         uses: actions/upload-artifact@v7
         with:
-          path: ${{ matrix.folder }}/*.tgz
-          name: package-tarball-${{ matrix.folder }}
+          path: ${{ inputs.folder }}/*.tgz
+          name: package-tarball-${{ inputs.folder }}
           retention-days: 2

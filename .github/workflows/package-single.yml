@@ -1,0 +1,33 @@
+name: Package single grammar for release
+
+# Grammars are versioned independently, so a release is always scoped to a
+# single grammar. The tag names it: `tree-sitter-kotlin@0.4.0` releases
+# `tree-sitter-kotlin` and nothing else.
+on:
+  push:
+    tags:
+      - "tree-sitter-*@*"
+
+jobs:
+  parse-tag:
+    name: Resolve grammar folder from tag
+    runs-on: ubuntu-latest
+    outputs:
+      folder: ${{ steps.parse.outputs.folder }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Parse and validate tag
+        id: parse
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |-
+          FOLDER="$(node .github/scripts/parse-tag.js "$TAG_NAME")"
+          echo "folder=$FOLDER" >> "$GITHUB_OUTPUT"
+
+  package:
+    name: Package (${{ needs.parse-tag.outputs.folder }})
+    needs: [parse-tag]
+    uses: ./.github/workflows/package.yml
+    with:
+      folder: ${{ needs.parse-tag.outputs.folder }}

@@ -77,9 +77,19 @@ import type { KotlinNode } from "tree-sitter-kotlin/nodes";
 
 ### 3. Add to CI
 
-Add the new folder to the `matrix.folder` list in both workflows:
+Add the new folder to the `matrix.folder` list in `.github/workflows/test.yml`,
+so its parser tests run on every push and pull request:
 
-in `.github/workflows/test.yml`
+```
+    strategy:
+      matrix:
+        folder:
+          - tree-sitter-kotlin
+          - tree-sitter-dart   # <- new grammar added here
+```
+
+Also add it to the `matrix.folder` list in `.github/workflows/package-all.yml`,
+so the manual "package every grammar" run picks it up too:
 
 ```
     strategy:
@@ -89,15 +99,28 @@ in `.github/workflows/test.yml`
           - tree-sitter-dart   # <- new grammar added here
 ```
 
-in `.github/workflows/package.yml` (both the `build_node` and `package` jobs)
+`.github/workflows/package.yml` needs no change — it's a reusable workflow
+that packages whichever single folder it's given (see below).
+
+## Releasing a grammar
+
+Grammars are versioned independently, so a release is always scoped to one
+grammar. Bump the version in that grammar's `package.json`, then push a tag
+named `<grammar-folder>@<version>`:
 
 ```
-    strategy:
-      matrix:
-        folder:
-          - tree-sitter-kotlin
-          - tree-sitter-dart   # <- new grammar added here
+git tag tree-sitter-kotlin@0.4.0
+git push origin tree-sitter-kotlin@0.4.0
 ```
+
+This triggers `release.yml`, which resolves the folder from the tag, checks
+the tag version matches `<grammar-folder>/package.json` (the run fails rather
+than publishing a tarball whose version disagrees with the tag), and calls the
+reusable `package.yml` workflow to build prebuilt binaries and an `npm pack`
+tarball for that grammar only.
+
+To build every known grammar without tagging (e.g. to validate a change to the
+build itself), run `package-all.yml` manually via `workflow_dispatch`.
 
 ## Grammars
 
