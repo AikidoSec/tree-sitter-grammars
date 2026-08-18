@@ -1,0 +1,60 @@
+name: Package single grammar for release
+
+# Grammars are versioned independently, so a release is always scoped to a
+# single grammar. The tag names it: `tree-sitter-kotlin@0.4.0` releases
+# `tree-sitter-kotlin` and nothing else.
+on:
+  push:
+    tags:
+      - "tree-sitter-*@*"
+
+jobs:
+  parse-tag:
+    name: Resolve grammar folder from tag
+    runs-on: ubuntu-latest
+    outputs:
+      folder: ${{ steps.parse.outputs.folder }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Parse and validate tag
+        id: parse
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |-
+          # tree-sitter-kotlin@0.4.0 -> folder=tree-sitter-kotlin version=0.4.0
+          FOLDER="${TAG_NAME%@*}"
+          VERSION="${TAG_NAME##*@}"
+          if [ "$FOLDER" = "$TAG_NAME" ] || [ -z "$FOLDER" ] || [ -z "$VERSION" ]; then
+            echo "::error::Tag '$TAG_NAME' must be <grammar-folder>@<version>, e.g. tree-sitter-kotlin@0.4.0."
+            exit 1
+          fi
+
+          # Reject anything that is not a plain grammar folder name before it
+          # reaches the filesystem or a working-directory.
+          if ! printf '%s' "$FOLDER" | grep -Eq '^tree-sitter-[a-z0-9][a-z0-9._-]*$'; then
+            echo "::error::'$FOLDER' is not a valid grammar folder name."
+            exit 1
+          fi
+          if [ ! -f "$FOLDER/package.json" ]; then
+            echo "::error::No grammar at '$FOLDER' ($FOLDER/package.json not found)."
+            exit 1
+          fi
+
+          # A tag that disagrees with package.json would publish a tarball whose
+          # version silently differs from the tag npm users see.
+          PKG_VERSION=$(jq -r '.version' "$FOLDER/package.json")
+          if [ "$VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version $VERSION does not match $FOLDER/package.json version $PKG_VERSION."
+            exit 1
+          fi
+
+          echo "Releasing $FOLDER@$VERSION"
+          echo "folder=$FOLDER" >> "$GITHUB_OUTPUT"
+
+  package:
+    name: Package (${{ needs.parse-tag.outputs.folder }})
+    needs: [parse-tag]
+    uses: ./.github/workflows/package.yml
+    with:
+      folder: ${{ needs.parse-tag.outputs.folder }}
