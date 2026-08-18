@@ -1,7 +1,7 @@
 name: Prebuild and package tarball (npm)
 
 # Reusable workflow: builds NodeJS prebuilds and packages an npm tarball for
-# a single grammar folder. Called by release.yml (one folder, from a tag)
+# a single grammar folder. Called by package-single.yml (one folder, from a tag)
 # and package-all.yml (every known folder, via matrix).
 on:
   workflow_call:

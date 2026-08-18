@@ -113,7 +113,7 @@ git tag tree-sitter-kotlin@0.4.0
 git push origin tree-sitter-kotlin@0.4.0
 ```
 
-This triggers `release.yml`, which resolves the folder from the tag, checks
+This triggers `package-single.yml`, which resolves the folder from the tag, checks
 the tag version matches `<grammar-folder>/package.json` (the run fails rather
 than publishing a tarball whose version disagrees with the tag), and calls the
 reusable `package.yml` workflow to build prebuilt binaries and an `npm pack`
