@@ -1,0 +1,17 @@
+name: Package all grammars
+
+# Manual escape hatch for validating changes to package.yml (or the build
+# itself) against every known grammar.
+on:
+  workflow_dispatch:
+
+jobs:
+  grammar:
+    name: ${{ matrix.folder }}
+    strategy:
+      matrix:
+        folder:
+          - tree-sitter-kotlin
+    uses: ./.github/workflows/package.yml
+    with:
+      folder: ${{ matrix.folder }}
