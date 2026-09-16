@@ -6142,6 +6142,22 @@
               }
             },
             {
+              "type": "SYMBOL",
+              "name": "with_initializer"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "TOKEN",
+              "content": {
+                "type": "PATTERN",
+                "value": "[nN][eE][wW]"
+              }
+            },
+            {
               "type": "FIELD",
               "name": "type",
               "content": {
@@ -6363,6 +6379,30 @@
     "member_initializer": {
       "type": "SEQ",
       "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "key",
+              "content": {
+                "type": "ALIAS",
+                "content": {
+                  "type": "TOKEN",
+                  "content": {
+                    "type": "PATTERN",
+                    "value": "[kK][eE][yY]"
+                  }
+                },
+                "named": true,
+                "value": "key_modifier"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
         {
           "type": "STRING",
           "value": "."

@@ -1715,6 +1715,16 @@
     "type": "member_initializer",
     "named": true,
     "fields": {
+      "key": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "key_modifier",
+            "named": true
+          }
+        ]
+      },
       "member": {
         "multiple": false,
         "required": true,
@@ -1963,7 +1973,7 @@
     "fields": {
       "type": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "type",
@@ -3176,6 +3186,10 @@
   },
   {
     "type": "integer_literal",
+    "named": true
+  },
+  {
+    "type": "key_modifier",
     "named": true
   },
   {

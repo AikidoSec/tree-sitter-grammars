@@ -848,6 +848,10 @@ module.exports = grammar({
     new_expression: $ => {
       const type = field('type', alias($._new_type, $.type));
       return choice(
+        // Anonymous type: `New With { ... }` has no type name at all. Without this
+        // alternative the only way to parse it was to let `With` be swallowed as the type
+        // name, which silently produced a fake type and left the members misparsed.
+        seq(kw('New'), $.with_initializer),
         seq(kw('New'), type, optional($.argument_list), optional($.with_initializer)),
         seq(kw('New'), type, $.argument_list, $.array_literal),
         seq(kw('New'), type, $.object_initializers)
@@ -875,7 +879,11 @@ module.exports = grammar({
       '}'
     ),
 
+    // `Key` marks a member as part of an anonymous type's identity (equality/hash). It is
+    // only meaningful here, so it is matched as part of the initializer rather than added
+    // to the general keyword set.
     member_initializer: $ => seq(
+      optional(field('key', alias(kw('Key'), $.key_modifier))),
       '.',
       field('member', $.identifier),
       '=',

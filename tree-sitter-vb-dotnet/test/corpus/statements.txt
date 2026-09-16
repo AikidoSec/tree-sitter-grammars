@@ -529,7 +529,7 @@ Module M
 	Sub Main()
 		Dim result = New With {
 			Key .status = "ok",
-			Key .name = "x"
+			.name = "x"
 		}
 	End Sub
 End Module
@@ -549,32 +549,18 @@ End Module
             (identifier)
             (expression
               (new_expression
-                (type
-                  (namespace_name
-                    (identifier)))
-                (object_initializers
-                  (object_initializer
+                (with_initializer
+                  (member_initializer
+                    (key_modifier)
+                    (identifier)
                     (expression
-                      (binary_expression
-                        (expression
-                          (member_access
-                            (expression
-                              (identifier))
-                            (identifier)))
-                        (expression
-                          (literal
-                            (string_literal))))))
-                  (object_initializer
+                      (literal
+                        (string_literal))))
+                  (member_initializer
+                    (identifier)
                     (expression
-                      (binary_expression
-                        (expression
-                          (member_access
-                            (expression
-                              (identifier))
-                            (identifier)))
-                        (expression
-                          (literal
-                            (string_literal)))))))))))))))
+                      (literal
+                        (string_literal)))))))))))))
 
 ================================================================================
 Constructor call with arguments
