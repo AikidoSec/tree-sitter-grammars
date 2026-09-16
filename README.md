@@ -102,6 +102,22 @@ so the manual "package every grammar" run picks it up too:
 `.github/workflows/package.yml` needs no change — it's a reusable workflow
 that packages whichever single folder it's given (see below).
 
+### 4. Exclude from Aikido scanning
+
+Add the folder to `exclude.paths` in `.aikido`:
+
+```yaml
+exclude:
+  paths:
+    # exclude all grammars
+    - tree-sitter-kotlin
+    - tree-sitter-dart   # <- new grammar added here
+```
+
+Vendored grammars are third-party code we don't author, and a generated
+`src/parser.c` is a megabytes-large C file full of lookup tables. Scanning them
+produces findings nobody here can action, so every grammar folder is excluded.
+
 ## Releasing a grammar
 
 Grammars are versioned independently, so a release is always scoped to one
