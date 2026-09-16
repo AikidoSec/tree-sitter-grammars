@@ -37,3 +37,88 @@ End Module
 ; Skipped tests don't count toward pass/fail (see `tree-sitter test`
 ; output: total excludes this one entirely) so CI stays green.
 (source_file)
+
+================================================================================
+[gap] inline attribute block (parameter, return type, same-line member)
+:skip
+================================================================================
+
+Class C
+	Function F(<Out> ByRef a As Integer) As Integer
+	End Function
+	Function G(<[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol)) As Integer
+	End Function
+	Function H() As <Out> Integer
+	End Function
+	<Obsolete> Sub S()
+	End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+; FIX TARGET (unlike the generic-type gap above, which is accepted as-is).
+;
+; `attribute_block` ends with a mandatory `$._terminator`, and
+; `_terminator: choice($._newline, ':')` — so an attribute only parses when it
+; sits on its own line. Every inline position therefore fails with a MISSING
+; ':' right after the closing '>':
+;   - on a parameter:    Function F(<Out> ByRef a As Integer)
+;   - on a return type:  Function H() As <Out> Integer
+;   - same-line member:  <Obsolete> Sub S()
+; `parameter` already lists `optional($.attribute_block)`, so the rule was
+; meant to work; the trailing terminator is what blocks it.
+;
+; Not about the attribute's contents and not about line continuation:
+; `<Out>`, `<[In]>` and `<Foo, Bar>` all fail identically, while a multi-line
+; parameter list with no attributes parses fine. Own-line attributes on a class
+; or method keep working (pinned in declarations.txt).
+;
+; ~3,750 occurrences across dotnet/roslyn's VB sources.
+;
+; Intended fix: lift `$._terminator` out of `attribute_block` and have the
+; member-level position consume it instead. On fixing, replace this with
+; positive cases in declarations.txt and delete the entry here.
+(source_file)
+
+================================================================================
+[gap] As New shorthand in Dim and field declarations
+:skip
+================================================================================
+
+Class C
+	Private cached As New Dictionary()
+	Sub S()
+		Dim a As New Foo
+		Dim b As New Foo()
+		Dim c As New Foo(arg)
+		Dim d As New N.Foo()
+		Dim e As New Foo With {.A = 1}
+	End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+; FIX TARGET.
+;
+; `as_clause: seq(kw('As'), field('type', $.type))` has no alternative for VB's
+; `As New` shorthand, so `New` is consumed as the type name and the real class
+; name lands in an ERROR. Every form fails — bare, empty parens, with
+; arguments, namespace-qualified, and with a trailing object initializer — and
+; field declarations fail the same way as `Dim`, since both route through
+; `as_clause`.
+;
+; The long forms are unaffected: `Dim x As Foo = New Foo()` and
+; `Dim x = New Foo()` both parse correctly today.
+;
+; ~4,779 occurrences across dotnet/roslyn's VB sources.
+;
+; Intended fix: give `as_clause` a `New` alternative reusing `new_expression`,
+; which this branch's restructure already made capable of all three shapes
+; (constructor call / array creation / object initializer).
+;
+; Downstream: autotriage's `Vb.ts:extractVariableDeclarations` carries two
+; workarounds that exist only because of this bug — an `array_type` branch and
+; a `typeNode?.text !== 'New'` guard — plus two pinned corpus gaps in its own
+; `src/langs/vb/corpus/gaps.txt`. All four should be removed/flipped when this
+; lands.
+(source_file)

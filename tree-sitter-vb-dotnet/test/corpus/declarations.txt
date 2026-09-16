@@ -547,3 +547,165 @@ End Namespace
   (namespace_block
     (namespace_name
       (identifier))))
+
+================================================================================
+Nested Structure, Interface, Enum and Delegate declarations
+================================================================================
+
+Public Class Outer
+	Public Structure InnerStruct
+		Public X As Integer
+	End Structure
+	Public Interface IInner
+	End Interface
+	Public Enum InnerEnum
+		A
+	End Enum
+	Public Delegate Sub InnerDelegate(x As Integer)
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (type_declaration
+        (structure_block
+          (modifiers
+            (modifier))
+          (identifier)
+          (field_declaration
+            (modifiers
+              (modifier))
+            (variable_declarator
+              (identifier)
+              (as_clause
+                (type
+                  (primitive_type)))))))
+      (type_declaration
+        (interface_block
+          (modifiers
+            (modifier))
+          (identifier)))
+      (type_declaration
+        (enum_block
+          (modifiers
+            (modifier))
+          (identifier)
+          (enum_member
+            (identifier))))
+      (type_declaration
+        (delegate_declaration
+          (modifiers
+            (modifier))
+          (identifier)
+          (parameter_list
+            (parameter
+              (identifier)
+              (as_clause
+                (type
+                  (primitive_type))))))))))
+
+================================================================================
+Region directives around members
+================================================================================
+
+Public Class C
+#Region "helpers"
+	Sub S()
+	End Sub
+#End Region
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (preprocessor_directive)
+      (blank_line)
+      (method_declaration
+        (identifier)
+        (parameter_list))
+      (preprocessor_directive)
+      (blank_line))))
+
+================================================================================
+Structure with Implements on a separate line
+================================================================================
+
+Public Structure S
+	Implements IFoo
+	Public X As Integer
+End Structure
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (structure_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (implements_clause
+        (type
+          (namespace_name
+            (identifier))))
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (type
+              (primitive_type))))))))
+
+================================================================================
+Attributes on their own line, with and without arguments
+================================================================================
+
+<Serializable>
+Public Class C
+	<Obsolete("use D")>
+	Sub S()
+	End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+; Note the asymmetry, pinned here deliberately: a member-level attribute
+; becomes a child of the member it decorates (see method_declaration below),
+; but a type-level one lands as a *sibling* of the type_declaration rather than
+; inside it. Pre-existing behaviour, not something this branch changed, and
+; harmless for declaration/call extraction — recorded so a later "tidy-up"
+; doesn't change it unnoticed.
+(source_file
+  (blank_line)
+  (attribute_block
+    (attribute
+      (identifier)))
+  (type_declaration
+    (class_block
+      (modifiers
+        (modifier))
+      (identifier)
+      (method_declaration
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list
+              (argument
+                (expression
+                  (literal
+                    (string_literal)))))))
+        (identifier)
+        (parameter_list)))))
