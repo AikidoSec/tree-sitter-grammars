@@ -682,11 +682,18 @@ End Class
 
 --------------------------------------------------------------------------------
 
+; Two shapes pinned here deliberately. A member-level attribute becomes a child of the
+; member it decorates (see method_declaration below), but a type-level one lands as a
+; *sibling* of the type_declaration rather than inside it — pre-existing behaviour,
+; harmless for declaration/call extraction. And since attribute_block no longer swallows a
+; trailing terminator, the newline after a top-level attribute now surfaces as its own
+; blank_line, whereas mid-declaration it is absorbed by extras (hence none after <Obsolete>).
 (source_file
   (blank_line)
   (attribute_block
     (attribute
       (identifier)))
+  (blank_line)
   (type_declaration
     (class_block
       (modifiers
@@ -813,3 +820,104 @@ End Class
                         (namespace_name
                           (identifier))))))
                 (argument_list)))))))))
+
+================================================================================
+Inline attributes on parameters, return types and members
+================================================================================
+
+Class C
+	Function F(<Out> ByRef a As Integer) As Integer
+	End Function
+	Function G(sym As Symbol,
+				<[In], Out> ByRef useSiteInfo As CompoundUseSiteInfo(Of AssemblySymbol),
+				Optional accessThroughType As TypeSymbol = Nothing) As Boolean
+	End Function
+	Function H() As <MarshalAs(UnmanagedType.I4)> Integer
+	End Function
+	<CLSCompliant(False)> Public MustOverride Sub Sub1()
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (attribute_block
+              (attribute
+                (identifier)))
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (type
+          (primitive_type)))
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (namespace_name
+                  (identifier)))))
+          (parameter
+            (attribute_block
+              (attribute
+                (identifier))
+              (attribute
+                (identifier)))
+            (identifier)
+            (as_clause
+              (type
+                (generic_type
+                  (namespace_name
+                    (identifier))
+                  (type_argument_list
+                    (type
+                      (namespace_name
+                        (identifier))))))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (namespace_name
+                  (identifier))))
+            (expression
+              (literal))))
+        (type
+          (primitive_type)))
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list
+              (argument
+                (expression
+                  (member_access
+                    (expression
+                      (identifier))
+                    (identifier)))))))
+        (type
+          (primitive_type)))
+      (method_declaration
+        (attribute_block
+          (attribute
+            (identifier)
+            (argument_list
+              (argument
+                (expression
+                  (literal
+                    (boolean_literal)))))))
+        (modifiers
+          (modifier)
+          (modifier))
+        (identifier)
+        (parameter_list)))))

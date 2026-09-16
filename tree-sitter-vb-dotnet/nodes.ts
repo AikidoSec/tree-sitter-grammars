@@ -350,6 +350,7 @@ export interface MethodDeclarationNode extends AbstractVb_dotnetNode {
   nameNode: IdentifierNode;
   parametersNode: ParameterListNode;
   returnTypeNode: TypeNode | null;
+  returnTypeAttributesNode: AttributeBlockNode | null;
 }
 
 export interface ModifiersNode extends AbstractVb_dotnetNode {

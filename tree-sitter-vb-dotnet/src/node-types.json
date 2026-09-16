@@ -1790,6 +1790,16 @@
             "named": true
           }
         ]
+      },
+      "return_type_attributes": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "attribute_block",
+            "named": true
+          }
+        ]
       }
     },
     "children": {

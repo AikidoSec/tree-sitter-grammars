@@ -223,11 +223,16 @@ module.exports = grammar({
     ),
 
     // Attributes: <...> blocks attached to declarations
+    // No trailing terminator: an attribute block is not a statement, and requiring one
+    // restricted attributes to their own line. Every inline position (on a parameter, on a
+    // return type, or on the same line as the member it decorates) then failed with a missing
+    // terminator. Where an attribute *does* sit on its own line, the newline is either absorbed
+    // by `extras` (mid-declaration, e.g. before a method's modifiers) or matched as a
+    // `blank_line` by the enclosing repeat, so both layouts now parse.
     attribute_block: $ => seq(
       '<',
       commaSep1($.attribute),
-      '>',
-      $._terminator
+      '>'
     ),
     // attribute: $ => seq(
     //   optional(seq(field('target', $.identifier), ':')),  // e.g., Assembly: or Module: target
@@ -337,7 +342,13 @@ module.exports = grammar({
       field('name', $.identifier),
       optional($.type_parameters),
       field('parameters', $.parameter_list),
-      optional(seq(kw('As'), field('return_type', $.type))),  // only for Function
+      optional(
+        seq(
+          kw('As'),
+          optional(field('return_type_attributes', $.attribute_block)),
+          field('return_type', $.type)
+        )
+      ),  // only for Function
       choice(
         // With body:
         seq($._terminator, repeat($.statement), kw('End'), choice(kw('Sub'), kw('Function')), $._terminator),

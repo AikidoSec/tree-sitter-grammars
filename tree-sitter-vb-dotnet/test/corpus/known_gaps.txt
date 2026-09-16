@@ -39,9 +39,6 @@ End Module
 (source_file)
 
 ================================================================================
-[gap] inline attribute block (parameter, return type, same-line member)
-:skip
-================================================================================
 
 Class C
 	Function F(<Out> ByRef a As Integer) As Integer
