@@ -36,6 +36,19 @@ End Module
 ; this was investigated and knowingly deprioritized, not overlooked.
 ; Skipped tests don't count toward pass/fail (see `tree-sitter test`
 ; output: total excludes this one entirely) so CI stays green.
+;
+; Later corpus-wide measurement, which confirms the call above rather than
+; overturning it. This is the *largest single cluster* of first-error causes
+; among failing production files in dotnet/roslyn (19 files, where nearly
+; every other distinct cause appears once), and the construct is common:
+; `ArrayBuilder(Of T).GetInstance()`, `ImmutableArray(Of T).Empty`,
+; `CompoundUseSiteInfo(Of T).Discarded`. So it is not rare — it is just
+; genuinely harmless: re-checked through autotriage's own extractor, and
+; `ArrayBuilder(Of Node).GetInstance()` still yields the call `GetInstance`,
+; identical to the non-generic `ArrayBuilder.GetInstance()` control, with
+; sibling, outer and chained calls all intact. Frequency is the reason to
+; revisit it if the grammar is ever wanted for type inference; it is not a
+; reason to revisit it for call extraction.
 (source_file)
 
 ================================================================================
@@ -76,3 +89,112 @@ End Class
 ; member-level position consume it instead. On fixing, replace this with
 ; positive cases in declarations.txt and delete the entry here.
 (source_file)
+
+================================================================================
+[gap] null-conditional access (?. and ?())
+:skip
+================================================================================
+
+Class C
+	Sub S(a As Foo, x As Object)
+		Dim r = a?.B
+		Dim s = a?.B()
+		Dim t = a?.B?.C
+		Dim u = a?.B.C
+		Dim v = a?(0)
+		a?.B()
+	End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+; FIX TARGET (low priority — see "costs" below).
+;
+; `member_access` is `prec.left(10, seq(field('object', $.expression), '.',
+; field('member', $.identifier)))` and there is no `?.` alternative, nor a
+; null-conditional form of `element_access` for `a?(0)`. Every shape above
+; fails. `?` is not used as a token anywhere else in the grammar today.
+;
+; ~1,995 occurrences across 277 files in dotnet/roslyn's VB sources.
+;
+; Costs autotriage nothing measurable: `a?.Save(n)` still yields the call
+; `Save` with `object="a"`, `arity=1`, `callType=directly` — byte-identical to
+; the `a.Save(n)` control — and sibling calls are unaffected. So this is parse
+; hygiene, not recall.
+;
+; Intended fix: add `?.` (and `?(`) alternatives to `member_access` /
+; `element_access`. Watch for interaction with a future nullable-type suffix
+; (`Integer?`), which is also unsupported and would want the same `?` token.
+
+================================================================================
+[gap] TypeOf ... Is / IsNot
+:skip
+================================================================================
+
+Class C
+	Sub S(x As Object)
+		Dim r = TypeOf x Is Foo
+		Dim s = TypeOf x IsNot Foo
+		If TypeOf x Is Foo Then
+		End If
+	End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+; FIX TARGET (low priority — see "costs" below).
+;
+; `TypeOf` appears only as an entry in the binary-operator precedence table
+; (`[1, kw('TypeOf')]`, commented "treated separately if needed") — that entry
+; makes it a *binary* operator, which is the wrong shape: the right-hand side
+; is a type, not an expression, and the operator is the two-token
+; `Is`/`IsNot`. There is no rule for the real form, so all three fail.
+;
+; ~2,547 occurrences across 485 files in dotnet/roslyn's VB sources.
+;
+; Costs autotriage nothing measurable: calls in and around the construct are
+; still extracted (a following `DoWork(1)` survives). It does add two spurious
+; zero-arg call candidates, `TypeOf` and the type name, which `isSameCall`
+; then filters on class/arity — noise, not error.
+;
+; Intended fix: a dedicated rule,
+; `seq(kw('TypeOf'), $.expression, choice(kw('Is'), kw('IsNot')), $.type)`,
+; and drop the misleading operator-table entry. Fairly self-contained.
+
+================================================================================
+[gap] tuple types and tuple literals
+:skip
+================================================================================
+
+Class C
+	Function F() As (Integer, Integer)
+	End Function
+	Function G() As Object
+		Return (1, 2)
+	End Function
+	Sub S()
+		Dim t As (Integer, String)
+		Dim u As (k As Integer, v As String)
+	End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+; FIX TARGET (low priority — see "costs" below).
+;
+; `type` has no tuple alternative, and there is no tuple-literal expression,
+; so both the type positions and `Return (1, 2)` fail. Named tuple elements
+; (`(k As Integer, v As String)`) are a further variant of the same gap.
+;
+; ~1,295 occurrences across 90 files in dotnet/roslyn's VB sources — the most
+; concentrated of the four, so a handful of files account for most of it.
+;
+; Costs autotriage nothing measurable: a following `DoWork(1)` still extracts.
+;
+; Intended fix: a tuple alternative on `type`, plus a tuple literal on
+; `expression`. Expect this to be the fiddliest of the three: `(` after `As`
+; already has to serve `type_argument_list` (`(Of T)`) and
+; `array_rank_specifier` (`()`, `(,)`), and that ambiguity already needs the
+; declared `[$.type, $.array_type]` and `[$._new_type, $._new_generic_type]`
+; conflicts. A tuple literal additionally overlaps
+; `parenthesized_expression` — `(1)` vs `(1, 2)` differ only past the comma.
