@@ -142,14 +142,12 @@ End Class
         (identifier)
         (parameter_list)
         (statement
-          (call_statement
+          (assignment_statement
+            (left_hand_side
+              (identifier))
             (expression
-              (binary_expression
-                (expression
-                  (identifier))
-                (expression
-                  (literal
-                    (integer_literal)))))))))))
+              (literal
+                (integer_literal)))))))))
 
 ================================================================================
 Interface declaration
@@ -289,13 +287,11 @@ End Class
                 (type
                   (primitive_type)))))
           (statement
-            (call_statement
+            (assignment_statement
+              (left_hand_side
+                (identifier))
               (expression
-                (binary_expression
-                  (expression
-                    (identifier))
-                  (expression
-                    (identifier)))))))))))
+                (identifier)))))))))
 
 ================================================================================
 Nested class declaration
@@ -682,12 +678,6 @@ End Class
 
 --------------------------------------------------------------------------------
 
-; Two shapes pinned here deliberately. A member-level attribute becomes a child of the
-; member it decorates (see method_declaration below), but a type-level one lands as a
-; *sibling* of the type_declaration rather than inside it — pre-existing behaviour,
-; harmless for declaration/call extraction. And since attribute_block no longer swallows a
-; trailing terminator, the newline after a top-level attribute now surfaces as its own
-; blank_line, whereas mid-declaration it is absorbed by extras (hence none after <Obsolete>).
 (source_file
   (blank_line)
   (attribute_block

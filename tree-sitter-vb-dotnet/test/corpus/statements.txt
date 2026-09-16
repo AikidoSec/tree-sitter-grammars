@@ -220,18 +220,16 @@ End Module
                   (literal
                     (integer_literal)))))
             (statement
-              (call_statement
+              (assignment_statement
+                (left_hand_side
+                  (identifier))
                 (expression
                   (binary_expression
                     (expression
                       (identifier))
                     (expression
-                      (binary_expression
-                        (expression
-                          (identifier))
-                        (expression
-                          (literal
-                            (integer_literal)))))))))))))))
+                      (literal
+                        (integer_literal)))))))))))))
 
 ================================================================================
 Try Catch Finally

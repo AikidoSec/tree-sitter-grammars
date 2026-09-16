@@ -508,12 +508,16 @@ module.exports = grammar({
       $._terminator
     ),
 
-    assignment_statement: $ => seq(
+    // Higher dynamic precedence than the call_statement/expression reading: at statement
+    // level `x = y` is an assignment, while `=` inside an expression (e.g. an If condition)
+    // stays a comparison. Without this, `expression` swallowed the whole statement as a
+    // binary `=` and this rule never matched at all.
+    assignment_statement: $ => prec.dynamic(1, seq(
       field('left', $.left_hand_side),
       '=',
       field('right', $.expression),
       $._terminator
-    ),
+    )),
     left_hand_side: $ => choice(
       $.identifier,
       $.member_access,
