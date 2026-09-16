@@ -682,12 +682,6 @@ End Class
 
 --------------------------------------------------------------------------------
 
-; Note the asymmetry, pinned here deliberately: a member-level attribute
-; becomes a child of the member it decorates (see method_declaration below),
-; but a type-level one lands as a *sibling* of the type_declaration rather than
-; inside it. Pre-existing behaviour, not something this branch changed, and
-; harmless for declaration/call extraction — recorded so a later "tidy-up"
-; doesn't change it unnoticed.
 (source_file
   (blank_line)
   (attribute_block
@@ -709,3 +703,113 @@ End Class
                     (string_literal)))))))
         (identifier)
         (parameter_list)))))
+
+================================================================================
+As New shorthand for fields and locals
+================================================================================
+
+Class C
+	Private cached As New Dictionary()
+	Sub S(arg As Integer)
+		Dim a As New Foo
+		Dim b As New Foo()
+		Dim c As New Foo(arg)
+		Dim d As New N.Foo()
+		Dim e As New Foo With {.A = 1}
+		Dim f As New Foo(Of T)()
+	End Sub
+End Class
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (class_block
+      (identifier)
+      (field_declaration
+        (modifiers
+          (modifier))
+        (variable_declarator
+          (identifier)
+          (as_clause
+            (new_expression
+              (type
+                (namespace_name
+                  (identifier)))
+              (argument_list)))))
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (as_clause
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (as_clause
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (as_clause
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (as_clause
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)
+                    (identifier)))
+                (argument_list)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (as_clause
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (with_initializer
+                  (member_initializer
+                    (identifier)
+                    (expression
+                      (literal
+                        (integer_literal)))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (as_clause
+              (new_expression
+                (type
+                  (generic_type
+                    (namespace_name
+                      (identifier))
+                    (type_argument_list
+                      (type
+                        (namespace_name
+                          (identifier))))))
+                (argument_list)))))))))

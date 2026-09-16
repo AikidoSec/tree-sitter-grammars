@@ -295,7 +295,11 @@ module.exports = grammar({
       optional(seq('=', field('initializer', $.expression)))
     ),
     array_rank_specifier: $ => seq('(', optional(repeat(',')), ')'),  // e.g. "()" or "(,)" for array dimensions
-    as_clause: $ => seq(kw('As'), field('type', $.type)),
+    // `As New Foo(...)` is VB's shorthand for declaring the type and constructing it in
+    // one clause. The constructed form is the whole `new_expression` (which already covers
+    // the bare, parenthesised, argument, generic and `With {}` shapes), so the declared type
+    // sits on that node's own `type` field rather than on the as_clause.
+    as_clause: $ => seq(kw('As'), choice(field('type', $.type), field('value', $.new_expression))),
 
     // Type (for variables, parameters, return types, etc.)
     type: $ => choice(

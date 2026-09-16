@@ -45,7 +45,8 @@ export interface ArrayTypeNode extends AbstractVb_dotnetNode {
 export interface AsClauseNode extends AbstractVb_dotnetNode {
   type: "as_clause";
 
-  typeNode: TypeNode;
+  typeNode: TypeNode | null;
+  valueNode: NewExpressionNode | null;
 }
 
 export interface AssignmentStatementNode extends AbstractVb_dotnetNode {
