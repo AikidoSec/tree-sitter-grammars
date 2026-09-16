@@ -47,6 +47,12 @@ module.exports = grammar({
     [$.namespace_name, $.attribute],
     [$.namespace_name],
     [$.source_file],
+    // Parenthesis-free call_statement argument list overlaps plain $.expression: both can fully
+    // explain the same text (e.g. as a dangling binary expression vs a call with a unary-minus
+    // argument, or a parenthesized single argument vs a normal invocation's argument_list).
+    // Resolved at runtime via the dynamic precedence on that alternative (see call_statement).
+    [$.call_statement, $.expression],
+    [$.parenthesized_expression, $.argument],
   ],
 
   rules: {
@@ -500,9 +506,24 @@ module.exports = grammar({
     ),
 
     call_statement: $ => seq(
-      choice(seq(kw('Call'), $.expression), $.expression),
+      choice(
+        seq(kw('Call'), $.expression),
+        // Parenthesis-free call with arguments, e.g. `repo.Save name` or `Console.WriteLine "x", 1`.
+        // Only valid as a full statement in VB — never inside another expression — so scoping
+        // this to call_statement (rather than a general $.expression alternative) avoids
+        // introducing ambiguity anywhere else in the grammar. `foo(x)` is ambiguous between this
+        // branch (foo, called with one parenthesized-expression argument) and plain $.expression
+        // reaching invocation via its own argument_list — lower dynamic precedence so invocation
+        // wins whenever it's reachable at all; this branch only wins when it's the only complete
+        // parse (i.e. no parens present), which is the entire point of this alternative.
+        prec.dynamic(-1, seq(field('target', choice($.member_access, $.identifier)), field('arguments', $._bare_argument_list))),
+        $.expression
+      ),
       $._terminator
     ),
+
+    // Parenthesis-free argument list ; same shape as `argument`, just without the enclosing parens.
+    _bare_argument_list: $ => commaSep1($.argument),
 
     // if_statement: $ => choice(
     //   // Single-line If
@@ -765,7 +786,10 @@ module.exports = grammar({
     ),
     argument: $ => choice(
       $.expression,
-      seq(field('name', $.identifier), ':', '=', $.expression)  // named argument (Name:=Expr)
+      // named argument (Name:=Expr) ; tokenized as a single ':=' so a lone ':' statement
+      // separator (used by _terminator and by the new parenthesis-free call_statement
+      // argument list) never conflicts with it.
+      seq(field('name', $.identifier), ':=', $.expression)
     ),
 
     // Member access (object.member) possibly spanning lines after the dot

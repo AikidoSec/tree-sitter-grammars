@@ -306,10 +306,35 @@
   {
     "type": "call_statement",
     "named": true,
-    "fields": {},
+    "fields": {
+      "arguments": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "argument",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "member_access",
+            "named": true
+          }
+        ]
+      }
+    },
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "expression",
@@ -3042,6 +3067,10 @@
   },
   {
     "type": ":",
+    "named": false
+  },
+  {
+    "type": ":=",
     "named": false
   },
   {

@@ -3792,6 +3792,40 @@
               ]
             },
             {
+              "type": "PREC_DYNAMIC",
+              "value": -1,
+              "content": {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "FIELD",
+                    "name": "target",
+                    "content": {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "SYMBOL",
+                          "name": "member_access"
+                        },
+                        {
+                          "type": "SYMBOL",
+                          "name": "identifier"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "FIELD",
+                    "name": "arguments",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_bare_argument_list"
+                    }
+                  }
+                ]
+              }
+            },
+            {
               "type": "SYMBOL",
               "name": "expression"
             }
@@ -3800,6 +3834,51 @@
         {
           "type": "SYMBOL",
           "name": "_terminator"
+        }
+      ]
+    },
+    "_bare_argument_list": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "argument"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "TOKEN",
+                "content": {
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "STRING",
+                      "value": ","
+                    },
+                    {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "PATTERN",
+                          "value": "\\r?\\n"
+                        },
+                        {
+                          "type": "BLANK"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "SYMBOL",
+                "name": "argument"
+              }
+            ]
+          }
         }
       ]
     },
@@ -5903,11 +5982,7 @@
             },
             {
               "type": "STRING",
-              "value": ":"
-            },
-            {
-              "type": "STRING",
-              "value": "="
+              "value": ":="
             },
             {
               "type": "SYMBOL",
@@ -7387,6 +7462,14 @@
     ],
     [
       "source_file"
+    ],
+    [
+      "call_statement",
+      "expression"
+    ],
+    [
+      "parenthesized_expression",
+      "argument"
     ]
   ],
   "precedences": [],

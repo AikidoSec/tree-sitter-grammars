@@ -80,6 +80,9 @@ export interface BlankLineNode extends AbstractVb_dotnetNode {
 
 export interface CallStatementNode extends AbstractVb_dotnetNode {
   type: "call_statement";
+
+  argumentsNodes: ArgumentNode[];
+  targetNode: IdentifierNode | MemberAccessNode | null;
 }
 
 export interface CaseBlockNode extends AbstractVb_dotnetNode {

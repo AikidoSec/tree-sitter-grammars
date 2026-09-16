@@ -816,3 +816,275 @@ End Module
                       (literal
                         (integer_literal)))))
                 (array_literal)))))))))
+
+================================================================================
+Parenthesis-free call with arguments
+================================================================================
+
+Module M
+	Sub Main(repo As Repo, name As String)
+		repo.Save name
+		Console.WriteLine "x", 1
+		Save name
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (namespace_name
+                  (identifier)))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (statement
+          (call_statement
+            (member_access
+              (expression
+                (identifier))
+              (identifier))
+            (argument
+              (expression
+                (identifier)))))
+        (statement
+          (call_statement
+            (member_access
+              (expression
+                (identifier))
+              (identifier))
+            (argument
+              (expression
+                (literal
+                  (string_literal))))
+            (argument
+              (expression
+                (literal
+                  (integer_literal))))))
+        (statement
+          (call_statement
+            (identifier)
+            (argument
+              (expression
+                (identifier)))))))))
+
+================================================================================
+Parenthesised call stays an invocation, not a one-argument bare call
+================================================================================
+
+Module M
+	Sub Main(x As Integer, y As Integer)
+		foo(x)
+		foo(x, y)
+		obj.Bar(1)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier)))
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (member_access
+                  (expression
+                    (identifier))
+                  (identifier))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))))))))))
+
+================================================================================
+Leading-minus stays a binary expression, not a bare call argument
+================================================================================
+
+Module M
+	Sub Main()
+		Foo -1
+		Foo(-1)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (literal
+                    (integer_literal)))))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (unary_expression
+                        (expression
+                          (literal
+                            (integer_literal)))))))))))))))
+
+================================================================================
+Named arguments in parenthesised and parenthesis-free calls
+================================================================================
+
+Module M
+	Sub Main()
+		Foo(Name:=1)
+		Foo(a, Name:=1)
+		Foo Name:=1
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (identifier)
+                    (expression
+                      (literal
+                        (integer_literal)))))))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier)))
+                  (argument
+                    (identifier)
+                    (expression
+                      (literal
+                        (integer_literal)))))))))
+        (statement
+          (call_statement
+            (identifier)
+            (argument
+              (identifier)
+              (expression
+                (literal
+                  (integer_literal))))))))))
+
+================================================================================
+Colon statement separator and label statement
+================================================================================
+
+Module M
+	Sub Main()
+		Dim a = 1 : Dim b = 2
+MyLabel:
+		GoTo MyLabel
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (literal
+                (integer_literal)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (literal
+                (integer_literal)))))
+        (statement
+          (label_statement
+            (identifier)))
+        (statement
+          (empty_statement))
+        (statement
+          (goto_statement
+            (identifier)))))))
