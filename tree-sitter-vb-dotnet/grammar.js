@@ -11,19 +11,28 @@
 module.exports = grammar({
   name: 'vb_dotnet',
 
+  // _newline is external so the scanner can check valid_symbols[NEWLINE]
+  // and only produce a real terminator when the grammar actually expects
+  // one there (which is already false inside argument lists, object
+  // initializers, etc. — none of those rules reference _terminator).
+  // When it's not expected, the scanner declines and the bare `\r?\n` in
+  // extras below silently absorbs it instead — this is what makes VB's
+  // implicit line continuation inside brackets work, with no bracket
+  // tracking needed at all.
+  externals: $ => [
+    $._newline,
+  ],
 
   extras: $ => [
     $.comment,
+    /\r?\n/,                 // silently absorbed wherever a real terminator isn't grammatically expected
     /[ \t\f\u00A0]+/,        // whitespace except newlines
     $._line_continuation    
   ],
 
   
   conflicts: $ => [
-    [$.type, $.invocation],
-    [$.type] ,
     [$.new_expression] ,
-    [$.type_argument_list] ,
     [$.property_declaration] ,
     [$.constructor_declaration],
     [$.method_declaration],
@@ -32,22 +41,31 @@ module.exports = grammar({
     [$.event_declaration],
     [$.if_statement],
     [$.type, $.array_type],
+    [$._new_type, $._new_generic_type],
     [$.if_statement, $.binary_expression],
     [$.empty_statement, $.if_statement],
     [$.namespace_name, $.attribute],
     [$.namespace_name],
+    [$.source_file],
+    // Parenthesis-free call_statement argument list overlaps plain $.expression: both can fully
+    // explain the same text (e.g. as a dangling binary expression vs a call with a unary-minus
+    // argument, or a parenthesized single argument vs a normal invocation's argument_list).
+    // Resolved at runtime via the dynamic precedence on that alternative (see call_statement).
+    [$.call_statement, $.expression],
+    [$.parenthesized_expression, $.argument],
   ],
 
   rules: {
     
     source_file: $ => seq(
+    repeat(alias($._terminator, $.blank_line)), // a leading comment leaves its terminator stranded here
     optional($.option_statements),
     repeat($.imports_statement),
     repeat(choice(
       $.attribute_block,
       $.namespace_block,
       $.type_declaration,
-      alias($._terminator, $.blank_line) // 
+      alias($._terminator, $.blank_line) //
     ))
   ),
 
@@ -107,15 +125,16 @@ module.exports = grammar({
       kw('End'), kw('Namespace'), $._terminator
     ),
 
-    // Class definition block
+    // Class definition block. Inherits/Implements are their own statement,
+    // one per line, right after the class header — not inline on it.
     class_block: $ => seq(
       field('modifiers', optional($.modifiers)),
       kw('Class'),
       field('name', $.identifier),
       optional($.type_parameters),
-      optional(field('inherits', $.inherits_clause)),
-      optional(field('implements', $.implements_clause)),
       $._terminator,
+      optional(seq(field('inherits', $.inherits_clause), $._terminator)),
+      optional(seq(field('implements', $.implements_clause), $._terminator)),
       repeat($._member_declaration),
       kw('End'), kw('Class'), $._terminator
     ),
@@ -136,8 +155,8 @@ module.exports = grammar({
       kw('Structure'),
       field('name', $.identifier),
       optional($.type_parameters),
-      optional(field('implements', $.implements_clause)),
       $._terminator,
+      optional(seq(field('implements', $.implements_clause), $._terminator)),
       repeat($._member_declaration),
       kw('End'), kw('Structure'), $._terminator
     ),
@@ -148,8 +167,8 @@ module.exports = grammar({
       kw('Interface'),
       field('name', $.identifier),
       optional($.type_parameters),
-      optional(field('inherits', $.inherits_clause)), // interfaces can inherit multiple interfaces
       $._terminator,
+      optional(seq(field('inherits', $.inherits_clause), $._terminator)), // interfaces can inherit multiple interfaces
       repeat($._member_declaration),
       kw('End'), kw('Interface'), $._terminator
     ),
@@ -188,8 +207,9 @@ module.exports = grammar({
 
     // Generic type parameter definitions: e.g., (Of T As {Constraint})
     type_parameters: $ => seq(
-      kw('Of'),
-      commaSep1($.type_parameter)
+      '(', kw('Of'),
+      commaSep1($.type_parameter),
+      ')'
     ),
     type_parameter: $ => seq(
       field('name', $.identifier),
@@ -203,11 +223,16 @@ module.exports = grammar({
     ),
 
     // Attributes: <...> blocks attached to declarations
+    // No trailing terminator: an attribute block is not a statement, and requiring one
+    // restricted attributes to their own line. Every inline position (on a parameter, on a
+    // return type, or on the same line as the member it decorates) then failed with a missing
+    // terminator. Where an attribute *does* sit on its own line, the newline is either absorbed
+    // by `extras` (mid-declaration, e.g. before a method's modifiers) or matched as a
+    // `blank_line` by the enclosing repeat, so both layouts now parse.
     attribute_block: $ => seq(
       '<',
       commaSep1($.attribute),
-      '>',
-      $._terminator
+      '>'
     ),
     // attribute: $ => seq(
     //   optional(seq(field('target', $.identifier), ':')),  // e.g., Assembly: or Module: target
@@ -242,7 +267,8 @@ module.exports = grammar({
       $.constructor_declaration,
       $.property_declaration,
       $.event_declaration,
-      $.delegate_declaration    // nested delegate type
+      $.type_declaration,       // nested class/structure/interface/enum/delegate
+      $.preprocessor_directive  // #If/#Else/#End If, #Region/#End Region, etc. around members
     ),
 
     // Constant definitions (inside classes or procedures)
@@ -274,7 +300,11 @@ module.exports = grammar({
       optional(seq('=', field('initializer', $.expression)))
     ),
     array_rank_specifier: $ => seq('(', optional(repeat(',')), ')'),  // e.g. "()" or "(,)" for array dimensions
-    as_clause: $ => seq(kw('As'), field('type', $.type)),
+    // `As New Foo(...)` is VB's shorthand for declaring the type and constructing it in
+    // one clause. The constructed form is the whole `new_expression` (which already covers
+    // the bare, parenthesised, argument, generic and `With {}` shapes), so the declared type
+    // sits on that node's own `type` field rather than on the as_clause.
+    as_clause: $ => seq(kw('As'), choice(field('type', $.type), field('value', $.new_expression))),
 
     // Type (for variables, parameters, return types, etc.)
     type: $ => choice(
@@ -302,7 +332,7 @@ module.exports = grammar({
       kw('Char'), kw('String'),
       kw('Object'), kw('Date')
     )),
-    type_argument_list: $ => seq(kw('Of'), commaSep1($.type)),
+    type_argument_list: $ => seq('(', kw('Of'), commaSep1($.type), ')'),
 
     // Method (Sub/Function) declaration inside a class/module or as a procedure in a module
     method_declaration: $ => seq(
@@ -312,7 +342,13 @@ module.exports = grammar({
       field('name', $.identifier),
       optional($.type_parameters),
       field('parameters', $.parameter_list),
-      optional(seq(kw('As'), field('return_type', $.type))),  // only for Function
+      optional(
+        seq(
+          kw('As'),
+          optional(field('return_type_attributes', $.attribute_block)),
+          field('return_type', $.type)
+        )
+      ),  // only for Function
       choice(
         // With body:
         seq($._terminator, repeat($.statement), kw('End'), choice(kw('Sub'), kw('Function')), $._terminator),
@@ -472,12 +508,16 @@ module.exports = grammar({
       $._terminator
     ),
 
-    assignment_statement: $ => seq(
+    // Higher dynamic precedence than the call_statement/expression reading: at statement
+    // level `x = y` is an assignment, while `=` inside an expression (e.g. an If condition)
+    // stays a comparison. Without this, `expression` swallowed the whole statement as a
+    // binary `=` and this rule never matched at all.
+    assignment_statement: $ => prec.dynamic(1, seq(
       field('left', $.left_hand_side),
       '=',
       field('right', $.expression),
       $._terminator
-    ),
+    )),
     left_hand_side: $ => choice(
       $.identifier,
       $.member_access,
@@ -485,9 +525,24 @@ module.exports = grammar({
     ),
 
     call_statement: $ => seq(
-      choice(seq(kw('Call'), $.expression), $.expression),
+      choice(
+        seq(kw('Call'), $.expression),
+        // Parenthesis-free call with arguments, e.g. `repo.Save name` or `Console.WriteLine "x", 1`.
+        // Only valid as a full statement in VB — never inside another expression — so scoping
+        // this to call_statement (rather than a general $.expression alternative) avoids
+        // introducing ambiguity anywhere else in the grammar. `foo(x)` is ambiguous between this
+        // branch (foo, called with one parenthesized-expression argument) and plain $.expression
+        // reaching invocation via its own argument_list — lower dynamic precedence so invocation
+        // wins whenever it's reachable at all; this branch only wins when it's the only complete
+        // parse (i.e. no parens present), which is the entire point of this alternative.
+        prec.dynamic(-1, seq(field('target', choice($.member_access, $.identifier)), field('arguments', $._bare_argument_list))),
+        $.expression
+      ),
       $._terminator
     ),
+
+    // Parenthesis-free argument list ; same shape as `argument`, just without the enclosing parens.
+    _bare_argument_list: $ => commaSep1($.argument),
 
     // if_statement: $ => choice(
     //   // Single-line If
@@ -739,6 +794,7 @@ module.exports = grammar({
     
     invocation: $ => prec.left(1, seq(
       field('target', choice($.member_access, $.identifier)),
+      optional(field('type_arguments', $.type_argument_list)),
       field('arguments', $.argument_list)
     )),
 
@@ -749,7 +805,10 @@ module.exports = grammar({
     ),
     argument: $ => choice(
       $.expression,
-      seq(field('name', $.identifier), ':', '=', $.expression)  // named argument (Name:=Expr)
+      // named argument (Name:=Expr) ; tokenized as a single ':=' so a lone ':' statement
+      // separator (used by _terminator and by the new parenthesis-free call_statement
+      // argument list) never conflicts with it.
+      seq(field('name', $.identifier), ':=', $.expression)
     ),
 
     // Member access (object.member) possibly spanning lines after the dot
@@ -779,15 +838,43 @@ module.exports = grammar({
     //   optional($.argument_list),
     //   optional($.object_initializers)
     // ),
-    new_expression: $ => seq(
-      kw('New'),
-      field('type', $.type),
-      optional($.argument_list),
-      optional(choice(
-        $.object_initializers,
-        $.with_initializer
-      ))
+    // Three structurally-exclusive shapes, so the parens after the type are
+    // never ambiguous with a rank marker and the trailing `{...}` is never
+    // ambiguous between an array initializer and an object initializer:
+    //   New Foo(args) [With {...}]  — constructor call; `_new_type` has no
+    //                                 array_rank_specifier, so argument_list
+    //                                 unambiguously owns the parens.
+    //   New Integer(2) {1, 2, 3}    — array creation; the bare trailing
+    //                                 array_literal (no `With`) is the
+    //                                 disambiguator, and the parens are the
+    //                                 bounds, so both are mandatory here.
+    //   New With {...}              — parens-less form (anonymous types).
+    new_expression: $ => {
+      const type = field('type', alias($._new_type, $.type));
+      return choice(
+        // Anonymous type: `New With { ... }` has no type name at all. Without this
+        // alternative the only way to parse it was to let `With` be swallowed as the type
+        // name, which silently produced a fake type and left the members misparsed.
+        seq(kw('New'), $.with_initializer),
+        seq(kw('New'), type, optional($.argument_list), optional($.with_initializer)),
+        seq(kw('New'), type, $.argument_list, $.array_literal),
+        seq(kw('New'), type, $.object_initializers)
+      );
+    },
+
+    // Type reference for `New`. Deliberately narrower than $.type: no
+    // array_rank_specifier and no $.array_type, because after `New` a
+    // parenthesised group is always arguments or array bounds, never a rank.
+    _new_type: $ => choice(
+      $.primitive_type,
+      alias($._new_generic_type, $.generic_type),
+      $.namespace_name
     ),
+    // No prec here: after `New Foo` with `(` ahead, the parser must be free to
+    // either shift into a type_argument_list (`New Foo(Of T)`) or reduce and
+    // let argument_list take the parens (`New Foo(args)`). Only `Of`, two
+    // tokens in, tells them apart — hence the conflict declared at the top.
+    _new_generic_type: $ => seq($.namespace_name, $.type_argument_list),
 
     with_initializer: $ => seq(
       kw('With'),
@@ -796,7 +883,11 @@ module.exports = grammar({
       '}'
     ),
 
+    // `Key` marks a member as part of an anonymous type's identity (equality/hash). It is
+    // only meaningful here, so it is matched as part of the initializer rather than added
+    // to the general keyword set.
     member_initializer: $ => seq(
+      optional(field('key', alias(kw('Key'), $.key_modifier))),
       '.',
       field('member', $.identifier),
       '=',
@@ -821,13 +912,13 @@ module.exports = grammar({
     // Binary operators with precedence (higher number = higher precedence binding)
     binary_expression: $ => {
       const table = [
-        [7, choice('^')],                              // exponentiation (right-associative in VB)
+        [7, '^'],                                       // exponentiation (right-associative in VB)
         [6, choice('*', '/', '\\', kw('Mod'))],        // multiplication, division, integer division, modulo
         [5, choice('+', '-')],                         // addition and subtraction
         [4, kw('&')],                                  // string concatenation
         [3, choice('<<', '>>')],                       // bit shifts
         [2, choice('=', '<>', '<', '>', '<=', '>=', kw('Is'), kw('IsNot'), kw('Like'))],  
-        [1, choice(kw('TypeOf'))],                     // TypeOf ... Is ... (treated separately if needed)
+        [1, kw('TypeOf')],                              // TypeOf ... Is ... (treated separately if needed)
         [0, choice(kw('And'), kw('Or'), kw('Xor'))],   // boolean/bitwise AND/OR/XOR
         [-1, choice(kw('AndAlso'), kw('OrElse'))]      // short-circuit logical operators (lowest precedence)
       ];
@@ -837,13 +928,15 @@ module.exports = grammar({
       ));
     },
 
-    // Ternary conditional (IIf-like or If operator: If(condition, trueExpr, falseExpr))
+    // If operator: 3-arg ternary (If(condition, trueExpr, falseExpr)) or
+    // 2-arg null-coalescing (If(expr, ifNothingExpr)) — false_branch is
+    // omitted for the 2-arg form.
     ternary_expression: $ => prec.right(seq(
       kw('If'),
       '(',
       field('condition', $.expression), ',',
-      field('true_branch', $.expression), ',',
-      field('false_branch', $.expression),
+      field('true_branch', $.expression),
+      optional(seq(',', field('false_branch', $.expression))),
       ')'
     )),
 
@@ -933,14 +1026,15 @@ module.exports = grammar({
       /[A-Za-z_][A-Za-z_0-9]*[$%&@#!]?/   // allow type-declaration suffix in identifier (e.g., foo$, bar!)
     )),
 
-    // Comment: `'` or `REM` to end of line
+    // Comment: `'` or `REM` to end of line. `REM` must be followed by
+    // whitespace or nothing — otherwise "Removed"/"Reminder"/etc. would
+    // match "Rem" + greedy rest-of-line and lose to the identifier only
+    // when the identifier happens to be longer than the whole comment.
     comment: $ => token(choice(
       seq("'", /[^\r\n]*/),
-      seq(kw('REM'), /[^\r\n]*/)
+      seq(kw('REM'), optional(seq(/[ \t]/, /[^\r\n]*/)))
     )),
 
-    // Line break (statement terminator)
-    _newline: $ => /\r?\n/,
 
     _line_continuation: $ => token(seq('_', /[ \t]*/, /\r?\n/)),
 
@@ -955,8 +1049,11 @@ function commaSep(rule) {
 }
 
 function kw(word) {
-  // token + positive precedence guarantees the keyword wins ties
-  return token(prec(1, ci(word)));
+  // No precedence boost: tree-sitter's lexer picks the *longest* match among
+  // competing tokens, so a plain token already lets "DoWork" win over "Do" as
+  // an identifier. A prec() boost here would make the short keyword win
+  // instead, splitting "DoWork"/"SelectAll" into keyword + orphan identifier.
+  return token(ci(word));
 }
 
 // Helper: comma-separated list (one or more), allowing a newline after commas

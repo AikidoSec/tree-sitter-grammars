@@ -45,7 +45,8 @@ export interface ArrayTypeNode extends AbstractVb_dotnetNode {
 export interface AsClauseNode extends AbstractVb_dotnetNode {
   type: "as_clause";
 
-  typeNode: TypeNode;
+  typeNode: TypeNode | null;
+  valueNode: NewExpressionNode | null;
 }
 
 export interface AssignmentStatementNode extends AbstractVb_dotnetNode {
@@ -80,6 +81,9 @@ export interface BlankLineNode extends AbstractVb_dotnetNode {
 
 export interface CallStatementNode extends AbstractVb_dotnetNode {
   type: "call_statement";
+
+  argumentsNodes: ArgumentNode[];
+  targetNode: IdentifierNode | MemberAccessNode | null;
 }
 
 export interface CaseBlockNode extends AbstractVb_dotnetNode {
@@ -297,6 +301,7 @@ export interface InvocationNode extends AbstractVb_dotnetNode {
 
   argumentsNode: ArgumentListNode;
   targetNode: IdentifierNode | MemberAccessNode;
+  typeArgumentsNode: TypeArgumentListNode | null;
 }
 
 export interface LabelStatementNode extends AbstractVb_dotnetNode {
@@ -333,6 +338,7 @@ export interface MemberAccessNode extends AbstractVb_dotnetNode {
 export interface MemberInitializerNode extends AbstractVb_dotnetNode {
   type: "member_initializer";
 
+  keyNode: KeyModifierNode | null;
   memberNode: IdentifierNode;
   valueNode: ExpressionNode;
 }
@@ -345,6 +351,7 @@ export interface MethodDeclarationNode extends AbstractVb_dotnetNode {
   nameNode: IdentifierNode;
   parametersNode: ParameterListNode;
   returnTypeNode: TypeNode | null;
+  returnTypeAttributesNode: AttributeBlockNode | null;
 }
 
 export interface ModifiersNode extends AbstractVb_dotnetNode {
@@ -371,7 +378,7 @@ export interface NamespaceNameNode extends AbstractVb_dotnetNode {
 export interface NewExpressionNode extends AbstractVb_dotnetNode {
   type: "new_expression";
 
-  typeNode: TypeNode;
+  typeNode: TypeNode | null;
 }
 
 export interface ObjectInitializerNode extends AbstractVb_dotnetNode {
@@ -482,7 +489,7 @@ export interface TernaryExpressionNode extends AbstractVb_dotnetNode {
   type: "ternary_expression";
 
   conditionNode: ExpressionNode;
-  falseBranchNode: ExpressionNode;
+  falseBranchNode: ExpressionNode | null;
   trueBranchNode: ExpressionNode;
 }
 
@@ -584,6 +591,10 @@ export interface IdentifierNode extends AbstractVb_dotnetNode {
 
 export interface IntegerLiteralNode extends AbstractVb_dotnetNode {
   type: "integer_literal";
+}
+
+export interface KeyModifierNode extends AbstractVb_dotnetNode {
+  type: "key_modifier";
 }
 
 export interface ModifierNode extends AbstractVb_dotnetNode {
@@ -706,6 +717,7 @@ export type Vb_dotnetNode =
   | FloatingPointLiteralNode
   | IdentifierNode
   | IntegerLiteralNode
+  | KeyModifierNode
   | ModifierNode
   | PreprocessorDirectiveNode
   | PrimitiveTypeNode

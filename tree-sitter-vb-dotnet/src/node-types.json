@@ -119,10 +119,20 @@
     "fields": {
       "type": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "type",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "new_expression",
             "named": true
           }
         ]
@@ -306,10 +316,35 @@
   {
     "type": "call_statement",
     "named": true,
-    "fields": {},
+    "fields": {
+      "arguments": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "argument",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "member_access",
+            "named": true
+          }
+        ]
+      }
+    },
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "expression",
@@ -479,10 +514,6 @@
           "named": true
         },
         {
-          "type": "delegate_declaration",
-          "named": true
-        },
-        {
           "type": "event_declaration",
           "named": true
         },
@@ -495,7 +526,15 @@
           "named": true
         },
         {
+          "type": "preprocessor_directive",
+          "named": true
+        },
+        {
           "type": "property_declaration",
+          "named": true
+        },
+        {
+          "type": "type_declaration",
           "named": true
         },
         {
@@ -1423,10 +1462,6 @@
           "named": true
         },
         {
-          "type": "delegate_declaration",
-          "named": true
-        },
-        {
           "type": "event_declaration",
           "named": true
         },
@@ -1439,7 +1474,15 @@
           "named": true
         },
         {
+          "type": "preprocessor_directive",
+          "named": true
+        },
+        {
           "type": "property_declaration",
+          "named": true
+        },
+        {
+          "type": "type_declaration",
           "named": true
         },
         {
@@ -1503,6 +1546,16 @@
           },
           {
             "type": "member_access",
+            "named": true
+          }
+        ]
+      },
+      "type_arguments": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "type_argument_list",
             "named": true
           }
         ]
@@ -1662,6 +1715,16 @@
     "type": "member_initializer",
     "named": true,
     "fields": {
+      "key": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "key_modifier",
+            "named": true
+          }
+        ]
+      },
       "member": {
         "multiple": false,
         "required": true,
@@ -1734,6 +1797,16 @@
         "types": [
           {
             "type": "type",
+            "named": true
+          }
+        ]
+      },
+      "return_type_attributes": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "attribute_block",
             "named": true
           }
         ]
@@ -1811,10 +1884,6 @@
           "named": true
         },
         {
-          "type": "delegate_declaration",
-          "named": true
-        },
-        {
           "type": "event_declaration",
           "named": true
         },
@@ -1827,7 +1896,15 @@
           "named": true
         },
         {
+          "type": "preprocessor_directive",
+          "named": true
+        },
+        {
           "type": "property_declaration",
+          "named": true
+        },
+        {
+          "type": "type_declaration",
           "named": true
         }
       ]
@@ -1896,7 +1973,7 @@
     "fields": {
       "type": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "type",
@@ -1911,6 +1988,10 @@
       "types": [
         {
           "type": "argument_list",
+          "named": true
+        },
+        {
+          "type": "array_literal",
           "named": true
         },
         {
@@ -2506,10 +2587,6 @@
           "named": true
         },
         {
-          "type": "delegate_declaration",
-          "named": true
-        },
-        {
           "type": "event_declaration",
           "named": true
         },
@@ -2522,7 +2599,15 @@
           "named": true
         },
         {
+          "type": "preprocessor_directive",
+          "named": true
+        },
+        {
           "type": "property_declaration",
+          "named": true
+        },
+        {
+          "type": "type_declaration",
           "named": true
         },
         {
@@ -2574,7 +2659,7 @@
       },
       "false_branch": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "expression",
@@ -3015,6 +3100,10 @@
     "named": false
   },
   {
+    "type": ":=",
+    "named": false
+  },
+  {
     "type": "<",
     "named": false
   },
@@ -3097,6 +3186,10 @@
   },
   {
     "type": "integer_literal",
+    "named": true
+  },
+  {
+    "type": "key_modifier",
     "named": true
   },
   {
