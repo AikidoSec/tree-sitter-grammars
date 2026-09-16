@@ -133,3 +133,12 @@ git subtree pull --prefix=tree-sitter-kotlin \
   git@github.com:fwcd/tree-sitter-kotlin.git \
   main --squash
 ```
+
+### VB.NET
+
+Source: `git@github.com:CodeAnt-AI/tree-sitter-vb-dotnet.git`.
+
+Vendored as a flattened snapshot, not a subtree merge, so `git subtree pull` does **not** work for
+this grammar. It is maintained here instead: the vendored copy has since diverged substantially
+from upstream (grammar fixes, an external scanner, and a `test/corpus/` suite), so updates are made
+in place rather than pulled.
