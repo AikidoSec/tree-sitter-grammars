@@ -102,6 +102,22 @@ so the manual "package every grammar" run picks it up too:
 `.github/workflows/package.yml` needs no change — it's a reusable workflow
 that packages whichever single folder it's given (see below).
 
+### 4. Exclude from Aikido scanning
+
+Add the folder to `exclude.paths` in `.aikido`:
+
+```yaml
+exclude:
+  paths:
+    # exclude all grammars
+    - tree-sitter-kotlin
+    - tree-sitter-dart   # <- new grammar added here
+```
+
+Vendored grammars are third-party code we don't author, and a generated
+`src/parser.c` is a megabytes-large C file full of lookup tables. Scanning them
+produces findings nobody here can action, so every grammar folder is excluded.
+
 ## Releasing a grammar
 
 Grammars are versioned independently, so a release is always scoped to one
@@ -133,3 +149,12 @@ git subtree pull --prefix=tree-sitter-kotlin \
   git@github.com:fwcd/tree-sitter-kotlin.git \
   main --squash
 ```
+
+### VB.NET
+
+Source: `git@github.com:CodeAnt-AI/tree-sitter-vb-dotnet.git`.
+
+Vendored as a flattened snapshot, not a subtree merge, so `git subtree pull` does **not** work for
+this grammar. It is maintained here instead: the vendored copy has since diverged substantially
+from upstream (grammar fixes, an external scanner, and a `test/corpus/` suite), so updates are made
+in place rather than pulled.
