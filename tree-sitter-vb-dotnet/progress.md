@@ -3,7 +3,7 @@
 ## Summary
 
 `tree-sitter-vb-dotnet` had no `test/corpus/` (unlike `tree-sitter-kotlin`/`tree-sitter-dart`), so
-none of its known parsing gaps were tracked as regression tests. This PR:
+none of its known parsing gaps were tracked as regression tests. [PR #4](https://github.com/AikidoSec/tree-sitter-grammars/pull/4):
 
 1. Adds `test/corpus/` with a baseline suite covering syntax the grammar already handles correctly.
 2. Ports the known grammar gaps found while benchmarking autotriage's VB.NET call-tracing (see
