@@ -33,6 +33,7 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ inputs.folder }}/package-lock.json
           node-version: ${{vars.NODE_VERSION || '22'}}
+          check-latest: true
       - name: Install dependencies
         # ignore preinstall script, so node-gyp-build is not trigerred
         run: npm i --omit peer --omit optional --ignore-scripts
@@ -76,6 +77,7 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ inputs.folder }}/package-lock.json
           node-version: ${{vars.NODE_VERSION || '22'}}
+          check-latest: true
       - name: Download binaries
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
