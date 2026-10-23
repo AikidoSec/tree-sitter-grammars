@@ -3,3 +3,4 @@ exclude:
     # exclude all grammars
     - tree-sitter-kotlin
     - tree-sitter-vb-dotnet
+    - tree-sitter-dart

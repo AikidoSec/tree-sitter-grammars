@@ -13,6 +13,7 @@ jobs:
         folder:
           - tree-sitter-kotlin
           - tree-sitter-vb-dotnet
+          - tree-sitter-dart
     uses: ./.github/workflows/package.yml
     with:
       folder: ${{ matrix.folder }}
