@@ -1,0 +1,1074 @@
+================================================================================
+If Else statement
+================================================================================
+
+Module Program
+    Sub Main()
+        If x > 0 Then
+            Console.WriteLine("positive")
+        Else
+            Console.WriteLine("non-positive")
+        End If
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (if_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (literal
+                    (integer_literal)))))
+            (statement
+              (call_statement
+                (expression
+                  (invocation
+                    (member_access
+                      (expression
+                        (identifier))
+                      (identifier))
+                    (argument_list
+                      (argument
+                        (expression
+                          (literal
+                            (string_literal)))))))))
+            (else_clause
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (literal
+                              (string_literal))))))))))))))))
+
+================================================================================
+Select Case statement
+================================================================================
+
+Module Program
+    Sub Main()
+        Select Case x
+            Case 1
+                Console.WriteLine("one")
+            Case 2
+                Console.WriteLine("two")
+            Case Else
+                Console.WriteLine("other")
+        End Select
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (select_case_statement
+            (expression
+              (identifier))
+            (case_block
+              (case_clause
+                (expression
+                  (literal
+                    (integer_literal))))
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (literal
+                              (string_literal))))))))))
+            (case_block
+              (case_clause
+                (expression
+                  (literal
+                    (integer_literal))))
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (literal
+                              (string_literal))))))))))
+            (case_else_block
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (literal
+                              (string_literal))))))))))))))))
+
+================================================================================
+For loop
+================================================================================
+
+Module Program
+    Sub Main()
+        For i As Integer = 0 To 10
+            Console.WriteLine(i)
+        Next
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (for_statement
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))
+            (expression
+              (literal
+                (integer_literal)))
+            (expression
+              (literal
+                (integer_literal)))
+            (statement
+              (call_statement
+                (expression
+                  (invocation
+                    (member_access
+                      (expression
+                        (identifier))
+                      (identifier))
+                    (argument_list
+                      (argument
+                        (expression
+                          (identifier))))))))))))))
+
+================================================================================
+While loop
+================================================================================
+
+Module Program
+    Sub Main()
+        While x < 10
+            x = x + 1
+        End While
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (while_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (literal
+                    (integer_literal)))))
+            (statement
+              (assignment_statement
+                (left_hand_side
+                  (identifier))
+                (expression
+                  (binary_expression
+                    (expression
+                      (identifier))
+                    (expression
+                      (literal
+                        (integer_literal)))))))))))))
+
+================================================================================
+Try Catch Finally
+================================================================================
+
+Module Program
+    Sub Main()
+        Try
+            ProcessData()
+        Catch ex As Exception
+            Console.WriteLine(ex.Message)
+        Finally
+            Cleanup()
+        End Try
+    End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (try_statement
+            (statement
+              (call_statement
+                (expression
+                  (invocation
+                    (identifier)
+                    (argument_list)))))
+            (catch_block
+              (identifier)
+              (type
+                (namespace_name
+                  (identifier)))
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (argument
+                          (expression
+                            (member_access
+                              (expression
+                                (identifier))
+                              (identifier))))))))))
+            (finally_block
+              (statement
+                (call_statement
+                  (expression
+                    (invocation
+                      (identifier)
+                      (argument_list))))))))))))
+
+================================================================================
+Do-prefix identifier is not confused with the Do-loop keyword
+================================================================================
+
+Module Program
+	Sub Main()
+		DoWork()
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list)))))))))
+
+================================================================================
+Generic method call with explicit type arguments
+================================================================================
+
+Module M
+	Sub Main()
+		GetItem(Of String)("key")
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (type_argument_list
+                  (type
+                    (primitive_type)))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (string_literal)))))))))))))
+
+================================================================================
+2-argument If null-coalescing operator
+================================================================================
+
+Module M
+	Sub Main()
+		Dim x = If(a, b)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (ternary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (identifier))))))))))
+
+================================================================================
+Rem-prefixed identifier is not confused with a REM comment
+================================================================================
+
+Module Program
+	Sub Main()
+		Dim Removed As Integer
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))))))
+
+================================================================================
+REM comment with content
+================================================================================
+
+Module Program
+	Sub Main()
+		REM this is a comment
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (comment)
+        (statement
+          (empty_statement))))))
+
+================================================================================
+Multi-line argument list without explicit line continuation
+================================================================================
+
+Module M
+	Sub Main()
+		Foo(
+			a,
+			b
+		)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier)))
+                  (argument
+                    (expression
+                      (identifier))))))))))))
+
+================================================================================
+Multi-line New With {} object initializer
+================================================================================
+
+Module M
+	Sub Main()
+		Dim vm = New OrderViewModel() With {
+			.OrderDate = o.OrderDate,
+			.Total = o.Total
+		}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list)
+                (with_initializer
+                  (member_initializer
+                    (identifier)
+                    (expression
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier))))
+                  (member_initializer
+                    (identifier)
+                    (expression
+                      (member_access
+                        (expression
+                          (identifier))
+                        (identifier)))))))))))))
+
+================================================================================
+Multi-line anonymous type with Key properties
+================================================================================
+
+Module M
+	Sub Main()
+		Dim result = New With {
+			Key .status = "ok",
+			.name = "x"
+		}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (with_initializer
+                  (member_initializer
+                    (key_modifier)
+                    (identifier)
+                    (expression
+                      (literal
+                        (string_literal))))
+                  (member_initializer
+                    (identifier)
+                    (expression
+                      (literal
+                        (string_literal)))))))))))))
+
+================================================================================
+Constructor call with arguments
+================================================================================
+
+Module M
+	Sub Main()
+		Dim conn = New SqlConnection(connStr)
+		Dim ex = New Exception("msg")
+		Dim p = New Point(x, y)
+		Dim q = New System.Text.StringBuilder(100)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (string_literal)))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier)))
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (invocation
+                (member_access
+                  (expression
+                    (member_access
+                      (expression
+                        (new_expression
+                          (type
+                            (namespace_name
+                              (identifier)))))
+                      (identifier)))
+                  (identifier))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))))))))))
+
+================================================================================
+Parameterless and generic constructor calls
+================================================================================
+
+Module M
+	Sub Main()
+		Dim sb = New StringBuilder()
+		Dim l = New List(Of Integer)()
+		Dim d = New Dictionary(Of String, Integer)(cmp)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (namespace_name
+                    (identifier)))
+                (argument_list)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (generic_type
+                    (namespace_name
+                      (identifier))
+                    (type_argument_list
+                      (type
+                        (primitive_type)))))
+                (argument_list)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (generic_type
+                    (namespace_name
+                      (identifier))
+                    (type_argument_list
+                      (type
+                        (primitive_type))
+                      (type
+                        (primitive_type)))))
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier))))))))))))
+
+================================================================================
+Array creation via New with a size and initializer
+================================================================================
+
+Module M
+	Sub Main()
+		Dim arr = New Integer(2) {1, 2, 3}
+		Dim inferred = New Integer() {1, 2, 3}
+		Dim empty = New String(9) {}
+		Dim rect = New Integer(1, 2) {}
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (primitive_type))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))
+                (array_literal
+                  (expression
+                    (literal
+                      (integer_literal)))
+                  (expression
+                    (literal
+                      (integer_literal)))
+                  (expression
+                    (literal
+                      (integer_literal))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (primitive_type))
+                (argument_list)
+                (array_literal
+                  (expression
+                    (literal
+                      (integer_literal)))
+                  (expression
+                    (literal
+                      (integer_literal)))
+                  (expression
+                    (literal
+                      (integer_literal))))))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (primitive_type))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))
+                (array_literal)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (new_expression
+                (type
+                  (primitive_type))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal))))
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))
+                (array_literal)))))))))
+
+================================================================================
+Parenthesis-free call with arguments
+================================================================================
+
+Module M
+	Sub Main(repo As Repo, name As String)
+		repo.Save name
+		Console.WriteLine "x", 1
+		Save name
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (namespace_name
+                  (identifier)))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (statement
+          (call_statement
+            (member_access
+              (expression
+                (identifier))
+              (identifier))
+            (argument
+              (expression
+                (identifier)))))
+        (statement
+          (call_statement
+            (member_access
+              (expression
+                (identifier))
+              (identifier))
+            (argument
+              (expression
+                (literal
+                  (string_literal))))
+            (argument
+              (expression
+                (literal
+                  (integer_literal))))))
+        (statement
+          (call_statement
+            (identifier)
+            (argument
+              (expression
+                (identifier)))))))))
+
+================================================================================
+Parenthesised call stays an invocation, not a one-argument bare call
+================================================================================
+
+Module M
+	Sub Main(x As Integer, y As Integer)
+		foo(x)
+		foo(x, y)
+		obj.Bar(1)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type))))
+          (parameter
+            (identifier)
+            (as_clause
+              (type
+                (primitive_type)))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier)))
+                  (argument
+                    (expression
+                      (identifier))))))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (member_access
+                  (expression
+                    (identifier))
+                  (identifier))
+                (argument_list
+                  (argument
+                    (expression
+                      (literal
+                        (integer_literal)))))))))))))
+
+================================================================================
+Leading-minus stays a binary expression, not a bare call argument
+================================================================================
+
+Module M
+	Sub Main()
+		Foo -1
+		Foo(-1)
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (binary_expression
+                (expression
+                  (identifier))
+                (expression
+                  (literal
+                    (integer_literal)))))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (unary_expression
+                        (expression
+                          (literal
+                            (integer_literal)))))))))))))))
+
+================================================================================
+Named arguments in parenthesised and parenthesis-free calls
+================================================================================
+
+Module M
+	Sub Main()
+		Foo(Name:=1)
+		Foo(a, Name:=1)
+		Foo Name:=1
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (identifier)
+                    (expression
+                      (literal
+                        (integer_literal)))))))))
+        (statement
+          (call_statement
+            (expression
+              (invocation
+                (identifier)
+                (argument_list
+                  (argument
+                    (expression
+                      (identifier)))
+                  (argument
+                    (identifier)
+                    (expression
+                      (literal
+                        (integer_literal)))))))))
+        (statement
+          (call_statement
+            (identifier)
+            (argument
+              (identifier)
+              (expression
+                (literal
+                  (integer_literal))))))))))
+
+================================================================================
+Colon statement separator and label statement
+================================================================================
+
+Module M
+	Sub Main()
+		Dim a = 1 : Dim b = 2
+MyLabel:
+		GoTo MyLabel
+	End Sub
+End Module
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (blank_line)
+  (type_declaration
+    (module_block
+      (identifier)
+      (method_declaration
+        (identifier)
+        (parameter_list)
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (literal
+                (integer_literal)))))
+        (statement
+          (dim_statement
+            (identifier)
+            (expression
+              (literal
+                (integer_literal)))))
+        (statement
+          (label_statement
+            (identifier)))
+        (statement
+          (empty_statement))
+        (statement
+          (goto_statement
+            (identifier)))))))
